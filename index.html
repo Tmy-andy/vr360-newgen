@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Boton Blue Hotel & Spa — Website 360</title>
+<meta name="description" content="Website 360 thế hệ mới — Bước vào không gian thật">
+
+<!-- Pannellum -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css">
+<script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Outfit',sans-serif;background:#060a10;color:#fff;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{cursor:pointer;border:none;background:none;font-family:inherit;color:inherit}
+
+:root{
+  --gold:#C9A861;--gold-soft:rgba(201,168,97,.12);--gold-mid:rgba(201,168,97,.3);--gold-glow:rgba(201,168,97,.45);
+  --dark:#060a10;--panel:rgba(8,14,26,.82);--panel-solid:rgba(12,20,38,.94);
+  --glass:rgba(255,255,255,.05);--glass-border:rgba(255,255,255,.08);
+  --text:#fff;--text-dim:rgba(255,255,255,.6);--text-mute:rgba(255,255,255,.35);
+  --serif:'Cormorant Garamond',Georgia,serif;--sans:'Outfit',system-ui,sans-serif;
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+
+/* ═══ PANORAMA = ENTIRE BG ═══ */
+#panorama{position:fixed;inset:0;z-index:0}
+#panorama .pnlm-container{width:100%!important;height:100%!important}
+.pnlm-controls-container,.pnlm-about-msg,.pnlm-load-button,.pnlm-orientation-button,.pnlm-compass{display:none!important}
+.pnlm-hotspot-base{background:none!important;width:auto!important;height:auto!important}
+.pnlm-sprite{display:none!important}
+.pnlm-tooltip{background:none!important;border:none!important;padding:0!important;box-shadow:none!important;min-width:auto!important;max-width:none!important;pointer-events:auto!important}
+.pnlm-tooltip span{display:none!important}
+.pnlm-pointer{display:none!important}
+
+/* ═══ LOADER ═══ */
+.loader{position:fixed;inset:0;z-index:9999;background:var(--dark);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .8s ease,visibility .8s}
+.loader.done{opacity:0;visibility:hidden;pointer-events:none}
+.loader-logo{font-family:var(--serif);font-size:28px;font-weight:300;letter-spacing:.15em;text-transform:uppercase;margin-bottom:32px;opacity:.8}
+.loader-logo span{color:var(--gold)}
+.loader-bar-track{width:200px;height:2px;background:rgba(255,255,255,.1);border-radius:1px;overflow:hidden}
+.loader-bar{height:100%;background:var(--gold);border-radius:1px;width:0%;transition:width .3s}
+.loader-text{margin-top:16px;font-size:12px;color:var(--text-mute);letter-spacing:.1em;text-transform:uppercase}
+
+/* ═══ UI LAYER ═══ */
+.ui-layer{position:fixed;inset:0;z-index:10;pointer-events:none;transition:opacity .4s var(--ease)}
+.ui-layer>*{pointer-events:auto}
+.ui-layer.hidden>*:not(.ui-restore){opacity:0!important;transform:translateY(8px)!important;pointer-events:none!important}
+.ui-layer.hidden .ui-restore{opacity:1!important;pointer-events:auto!important}
+
+/* ═══ TOPBAR ═══ */
+.topbar{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:20px 28px;background:linear-gradient(180deg,rgba(6,10,16,.7) 0%,transparent 100%);transition:opacity .4s var(--ease),transform .4s var(--ease)}
+.topbar-logo{display:flex;align-items:center;gap:14px}
+.topbar-logo img{height:40px;filter:brightness(0) invert(1);opacity:.9}
+.topbar-hotel{font-family:var(--serif);font-size:15px;font-weight:400;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim)}
+.topbar-nav{display:flex;align-items:center;gap:4px}
+.topbar-nav a{position:relative;padding:8px 16px;font-size:13px;font-weight:500;letter-spacing:.04em;color:var(--text-dim);border-radius:6px;transition:all .25s;white-space:nowrap}
+.topbar-nav a:hover,.topbar-nav a.active{color:var(--gold)}
+.topbar-nav a.active::after{content:'';position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:16px;height:2px;background:var(--gold);border-radius:1px}
+.topbar-actions{display:flex;align-items:center;gap:10px}
+.btn-gold{padding:9px 22px;background:var(--gold);color:var(--dark);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-radius:100px;transition:all .3s var(--ease)}
+.btn-gold:hover{background:#d4b572;transform:translateY(-1px);box-shadow:0 4px 20px var(--gold-glow)}
+.btn-icon{width:38px;height:38px;display:flex;align-items:center;justify-content:center;background:var(--glass);border:1px solid var(--glass-border);border-radius:50%;transition:all .25s}
+.btn-icon:hover{background:var(--gold-soft);border-color:var(--gold-mid)}
+.btn-icon svg{width:17px;height:17px;stroke:var(--text-dim);stroke-width:1.8;fill:none}
+.hamburger{display:none;width:38px;height:38px;align-items:center;justify-content:center;background:var(--glass);border:1px solid var(--glass-border);border-radius:50%}
+.hamburger svg{width:20px;height:20px;stroke:#fff;stroke-width:1.8;fill:none}
+
+/* ═══ CONTENT PANEL ═══ */
+.content-panel{position:absolute;right:28px;top:84px;bottom:28px;width:380px;background:var(--panel);backdrop-filter:blur(40px) saturate(1.4);border:1px solid var(--glass-border);border-radius:16px;display:flex;flex-direction:column;overflow:hidden;transition:opacity .5s var(--ease),transform .5s var(--ease)}
+.content-panel.slide-out{opacity:0;transform:translateX(30px);pointer-events:none}
+.panel-scroll{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--glass-border) transparent}
+.panel-scroll::-webkit-scrollbar{width:4px}
+.panel-scroll::-webkit-scrollbar-thumb{background:var(--glass-border);border-radius:2px}
+.panel-header{padding:28px 28px 0}
+.panel-badge{display:inline-block;padding:4px 12px;background:var(--gold);color:var(--dark);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;border-radius:4px;margin-bottom:14px}
+.panel-title{font-family:var(--serif);font-size:32px;font-weight:400;line-height:1.15;margin-bottom:6px;letter-spacing:.02em}
+.panel-subtitle{font-size:14px;color:var(--gold);font-weight:500;margin-bottom:20px;letter-spacing:.03em}
+.panel-divider{height:1px;background:var(--glass-border);margin:0 28px}
+.panel-body{padding:20px 28px 28px}
+.panel-desc{font-size:14px;line-height:1.75;color:var(--text-dim);margin-bottom:24px}
+.meta-row{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:20px}
+.meta-item{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-dim)}
+.meta-item svg{width:15px;height:15px;stroke:var(--gold);stroke-width:1.8;fill:none;flex-shrink:0}
+.amenities-label{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text-mute);margin-bottom:12px}
+.amenities-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px}
+.amenity-tag{display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--glass);border:1px solid var(--glass-border);border-radius:100px;font-size:12px;color:var(--text-dim);transition:all .2s}
+.amenity-tag svg{width:13px;height:13px;stroke:var(--gold);stroke-width:1.8;fill:none}
+.price-block{margin-bottom:20px}
+.price-label{font-size:11px;color:var(--text-mute);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
+.price-amount{font-family:var(--serif);font-size:36px;font-weight:500;color:var(--gold);letter-spacing:.02em}
+.price-unit{font-size:14px;color:var(--text-mute);font-family:var(--sans)}
+.panel-cta{display:flex;flex-direction:column;gap:8px}
+.btn-cta-primary{width:100%;padding:14px;text-align:center;background:var(--gold);color:var(--dark);font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-radius:8px;transition:all .3s var(--ease)}
+.btn-cta-primary:hover{background:#d4b572;box-shadow:0 4px 20px var(--gold-glow)}
+.btn-cta-outline{width:100%;padding:13px;text-align:center;border:1px solid var(--glass-border);color:var(--text-dim);font-size:13px;font-weight:600;letter-spacing:.05em;border-radius:8px;transition:all .25s}
+.btn-cta-outline:hover{border-color:var(--gold-mid);color:var(--gold)}
+.room-thumbs{display:flex;flex-direction:column;gap:6px;margin-bottom:20px}
+.room-thumb{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--glass);border:1px solid transparent;border-radius:10px;cursor:pointer;transition:all .25s}
+.room-thumb:hover{background:var(--gold-soft);border-color:var(--gold-mid)}
+.room-thumb.active{background:var(--gold-soft);border-color:var(--gold)}
+.room-thumb-dot{width:8px;height:8px;border-radius:50%;background:var(--glass-border);flex-shrink:0;transition:background .25s}
+.room-thumb.active .room-thumb-dot{background:var(--gold)}
+.room-thumb-info{flex:1;min-width:0}
+.room-thumb-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.room-thumb-meta{font-size:11px;color:var(--text-mute)}
+.room-thumb-arrow{width:16px;height:16px;stroke:var(--text-mute);stroke-width:1.8;fill:none;flex-shrink:0}
+
+/* ═══ SCENE NAV ═══ */
+.scene-nav{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);display:flex;gap:6px;padding:6px;background:var(--panel);backdrop-filter:blur(30px);border:1px solid var(--glass-border);border-radius:12px;transition:opacity .4s var(--ease),transform .4s var(--ease)}
+.scene-nav.hidden{opacity:0;transform:translateX(-50%) translateY(16px);pointer-events:none}
+.scene-tab{padding:10px 18px;border-radius:8px;font-size:12px;font-weight:600;letter-spacing:.03em;color:var(--text-dim);transition:all .25s;white-space:nowrap}
+.scene-tab:hover{color:#fff;background:var(--glass)}
+.scene-tab.active{color:var(--gold);background:var(--gold-soft)}
+
+/* ═══ LOCATION PILL ═══ */
+.location-pill{position:absolute;bottom:28px;left:28px;display:flex;align-items:center;gap:10px;padding:10px 18px;background:var(--panel);backdrop-filter:blur(30px);border:1px solid var(--glass-border);border-radius:100px;font-size:12px;color:var(--text-dim);transition:opacity .4s var(--ease),transform .4s var(--ease)}
+.location-pill svg{width:14px;height:14px;stroke:var(--gold);stroke-width:1.8;fill:none}
+.location-pill .temp{font-weight:600;color:var(--text)}
+
+/* ═══ RESTORE BTN ═══ */
+.ui-restore{position:absolute;bottom:28px;right:28px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:var(--panel);backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:50%;opacity:0;pointer-events:none;z-index:20;transition:all .3s var(--ease)}
+.ui-restore:hover{border-color:var(--gold-mid);background:var(--gold-soft)}
+.ui-restore svg{width:18px;height:18px;stroke:#fff;stroke-width:1.8;fill:none}
+
+/* ═══ HOTSPOTS ═══ */
+.hs{display:flex;align-items:center;gap:7px;padding:8px 16px;border-radius:100px;font-family:var(--sans);font-size:12px;font-weight:600;white-space:nowrap;cursor:pointer;transition:all .3s var(--ease);animation:hsPulse 3s ease-in-out infinite}
+.hs-nav{background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.25);color:#fff}
+.hs-nav:hover{background:rgba(255,255,255,.22);transform:scale(1.06)}
+.hs-info{background:var(--gold-soft);backdrop-filter:blur(8px);border:1px solid var(--gold-mid);color:var(--gold)}
+.hs-info:hover{background:rgba(201,168,97,.25);transform:scale(1.06)}
+@keyframes hsPulse{0%,100%{box-shadow:0 0 0 0 rgba(201,168,97,.25)}50%{box-shadow:0 0 0 10px rgba(201,168,97,0)}}
+
+/* ═══ INFO CARD ═══ */
+.info-card{position:fixed;z-index:50;width:300px;background:var(--panel-solid);backdrop-filter:blur(40px);border:1px solid var(--glass-border);border-radius:14px;overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,.5);animation:cardIn .35s var(--ease)}
+@keyframes cardIn{from{opacity:0;transform:scale(.92) translateY(8px)}}
+.info-card-close{position:absolute;top:10px;right:10px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.3);border-radius:50%;z-index:2}
+.info-card-close svg{width:14px;height:14px;stroke:#fff;stroke-width:2;fill:none}
+.info-card-body{padding:22px}
+.info-card h4{font-family:var(--serif);font-size:20px;font-weight:500;margin-bottom:10px;color:var(--gold)}
+.info-card p{font-size:13px;line-height:1.7;color:var(--text-dim)}
+
+/* ═══ MOBILE OVERLAY ═══ */
+.mobile-overlay{position:fixed;inset:0;z-index:200;background:var(--panel-solid);backdrop-filter:blur(40px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;opacity:0;visibility:hidden;transition:all .35s}
+.mobile-overlay.open{opacity:1;visibility:visible}
+.mobile-overlay a{font-family:var(--serif);font-size:28px;font-weight:400;color:var(--text-dim);padding:14px 32px;letter-spacing:.04em;transition:color .2s}
+.mobile-overlay a:hover,.mobile-overlay a.active{color:var(--gold)}
+.mobile-overlay .close-mob{position:absolute;top:20px;right:24px;padding:12px}
+.mobile-overlay .close-mob svg{width:28px;height:28px;stroke:#fff;stroke-width:1.5;fill:none}
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:1100px){.content-panel{width:340px;right:16px;top:74px;bottom:16px}}
+@media(max-width:860px){
+  .topbar-nav{display:none}.hamburger{display:flex}
+  .content-panel{right:0;left:0;bottom:0;top:auto;width:100%;max-height:55vh;border-radius:18px 18px 0 0;transform:translateY(calc(100% - 160px))}
+  .content-panel.expanded{transform:translateY(0)}
+  .content-panel.slide-out{transform:translateY(100%);opacity:0}
+  .panel-drag{display:flex!important;justify-content:center;padding:10px 0 2px;cursor:grab}
+  .panel-drag-bar{width:36px;height:4px;background:var(--text-mute);border-radius:2px}
+  .scene-nav{bottom:calc(160px + 16px)}
+  .location-pill{bottom:calc(160px + 16px);left:16px}
+  .topbar{padding:14px 16px}
+}
+@media(min-width:861px){.panel-drag{display:none!important}}
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div class="loader" id="loader">
+  <div class="loader-logo">Boton <span>Blue</span></div>
+  <div class="loader-bar-track"><div class="loader-bar" id="loaderBar"></div></div>
+  <div class="loader-text" id="loaderText">Đang tải không gian...</div>
+</div>
+
+<!-- PANORAMA = THE WEBSITE BACKGROUND -->
+<div id="panorama"></div>
+
+<!-- ALL UI OVERLAID ON 360 -->
+<div class="ui-layer" id="uiLayer">
+
+  <div class="topbar" id="topbar">
+    <div class="topbar-logo">
+      <img src="https://hotel.botonblue.com/uploads/2/logo/logo-boton-v2.png" alt="Boton Blue">
+    </div>
+    <nav class="topbar-nav" id="topNav"></nav>
+    <div class="topbar-actions">
+      <button class="btn-icon" onclick="toggleUI()" title="Ẩn/hiện giao diện">
+        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+      <button class="btn-gold" onclick="openBooking()">Book Now</button>
+      <button class="hamburger" onclick="toggleMobile()">
+        <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="content-panel" id="contentPanel">
+    <div class="panel-drag" onclick="toggleMobilePanel()"><div class="panel-drag-bar"></div></div>
+    <div class="panel-scroll" id="panelScroll"></div>
+  </div>
+
+  <div class="scene-nav hidden" id="sceneNav"></div>
+
+  <div class="location-pill">
+    <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    Nha Trang, Việt Nam &nbsp;·&nbsp; <span class="temp">28°C</span>
+  </div>
+
+  <button class="ui-restore" id="restoreBtn" onclick="showAllUI()">
+    <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+  </button>
+</div>
+
+<!-- MOBILE MENU -->
+<div class="mobile-overlay" id="mobileOverlay">
+  <button class="close-mob" onclick="toggleMobile()">
+    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <div id="mobileMenuLinks"></div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// DATA — Each "section" = a 360 scene that IS the page
+// ══════════════════════════════════════════════════════
+const SECTIONS = [
+  {
+    id:"lobby", navLabel:"Home",
+    panorama:"https://pannellum.org/images/alma.jpg",
+    yaw:120, pitch:-5, hfov:110, autoRotate:.3,
+    panelType:"welcome", badge:"★★★★ Nha Trang",
+    title:"Boton Blue Hotel & Spa", subtitle:"Experience To Enjoy",
+    description:"Tọa lạc tại vị trí đắc địa trên đường Trần Phú, Boton Blue Hotel & Spa mang đến trải nghiệm nghỉ dưỡng sang trọng với tầm nhìn panorama ra vịnh Nha Trang.\n\n216 phòng nghỉ cao cấp · 3 nhà hàng · Infinity Pool · Luxury Spa · Meeting Space",
+    highlights:["216 Phòng nghỉ","3 Nhà hàng","Infinity Pool","Luxury Spa","Meeting Space","86 Trần Phú"],
+    hotspots:[
+      {pitch:-5,yaw:220,type:"nav",label:"Phòng nghỉ →",target:"rooms"},
+      {pitch:-3,yaw:30,type:"nav",label:"Nhà hàng →",target:"dining"},
+      {pitch:8,yaw:300,type:"info",label:"Vịnh Nha Trang",desc:"Tầm nhìn trực diện ra vịnh Nha Trang — một trong những vịnh đẹp nhất thế giới."},
+    ]
+  },
+  {
+    id:"rooms", navLabel:"Rooms",
+    panorama:"https://pannellum.org/images/bma-1.jpg",
+    yaw:0, pitch:-5, hfov:100, autoRotate:.3,
+    panelType:"room-listing", badge:"Rooms",
+    title:"Phòng Nghỉ Cao Cấp", subtitle:"8 hạng phòng · 216 phòng",
+    description:"Mỗi phòng nghỉ tại Boton Blue đều được thiết kế tinh tế với tầm nhìn ra biển hoặc núi, nội thất cao cấp và tiện nghi đầy đủ.",
+    rooms:[
+      {name:"Superior Twin · Mountain View",area:28,price:"1,800,000",scene:"room-superior"},
+      {name:"Deluxe Twin · Ocean View",area:35,price:"2,500,000",scene:"room-deluxe"},
+      {name:"Pacific Double · Balcony Bathtub",area:42,price:"3,800,000",scene:"room-pacific"},
+      {name:"Suite · Exclusive Ocean View",area:80,price:"5,500,000",scene:"room-suite"},
+    ],
+    hotspots:[
+      {pitch:-3,yaw:-60,type:"nav",label:"← Lobby",target:"lobby"},
+      {pitch:-5,yaw:200,type:"nav",label:"Nhà hàng →",target:"dining"},
+    ]
+  },
+  {
+    id:"room-deluxe", navLabel:null,
+    panorama:"https://pannellum.org/images/cerro-toco-0.jpg",
+    yaw:-20, pitch:0, hfov:100, autoRotate:.4,
+    panelType:"room-detail", badge:"Deluxe",
+    title:"Deluxe Twin Room", subtitle:"Ocean View",
+    description:"Từ ban công rộng rãi, quý khách trải nghiệm vẻ đẹp huyền ảo của biển, lắng nghe tiếng sóng nhẹ nhàng và đón làn gió biển mát lành của vịnh Nha Trang.",
+    area:35,maxAdults:2,bedType:"2 Twin Beds",view:"Ocean",floor:"8–15",
+    amenities:["Panorama Ocean View","Spacious Balcony","Free WiFi","Air Conditioning","Bathtub","Mini Bar","Safe Box","Nespresso"],
+    price:"2,500,000",
+    subScenes:[{id:"room-deluxe",label:"Bedroom"},{id:"room-deluxe-balcony",label:"Balcony"}],
+    hotspots:[
+      {pitch:-6,yaw:140,type:"nav",label:"Ban công →",target:"room-deluxe-balcony"},
+      {pitch:8,yaw:-50,type:"info",label:"Ocean View",desc:"Tầm nhìn 180° panorama ra vịnh Nha Trang. Ngắm bình minh mỗi sáng ngay từ giường ngủ."},
+    ]
+  },
+  {
+    id:"room-deluxe-balcony", navLabel:null,
+    panorama:"https://pannellum.org/images/alma.jpg",
+    yaw:50, pitch:5, hfov:110, autoRotate:.5,
+    panelType:"room-detail", badge:"Deluxe",
+    title:"Deluxe Twin Room", subtitle:"Balcony · Ocean View",
+    description:"Ban công riêng với tầm nhìn trọn vẹn biển Nha Trang. Vị trí hoàn hảo để thưởng thức cà phê sáng hoặc ngắm hoàng hôn.",
+    area:35,maxAdults:2,bedType:"2 Twin Beds",view:"Ocean",floor:"8–15",
+    amenities:["Panorama Ocean View","Spacious Balcony","Free WiFi","Air Conditioning","Bathtub","Mini Bar"],
+    price:"2,500,000",
+    subScenes:[{id:"room-deluxe",label:"Bedroom"},{id:"room-deluxe-balcony",label:"Balcony"}],
+    hotspots:[
+      {pitch:-4,yaw:-140,type:"nav",label:"← Phòng ngủ",target:"room-deluxe"},
+      {pitch:12,yaw:40,type:"info",label:"Sunset Point",desc:"Vị trí hoàn hảo để ngắm hoàng hôn trên vịnh Nha Trang mỗi chiều."},
+    ]
+  },
+  {
+    id:"room-superior", navLabel:null,
+    panorama:"https://pannellum.org/images/cerro-toco-0.jpg",
+    yaw:30, pitch:-3, hfov:100, autoRotate:.3,
+    panelType:"room-detail", badge:"Superior",
+    title:"Superior Twin Room", subtitle:"Mountain View",
+    description:"Lựa chọn lý tưởng cho ai yêu sự yên tĩnh. Ban công riêng nhìn ra dãy núi Cô Tiên hùng vĩ.",
+    area:28,maxAdults:2,bedType:"2 Twin Beds",view:"Mountain",floor:"5–10",
+    amenities:["Mountain View","Private Balcony","Free WiFi","Air Conditioning","Mini Bar","Safe Box"],
+    price:"1,800,000", subScenes:[],
+    hotspots:[{pitch:-3,yaw:-120,type:"nav",label:"← Xem phòng khác",target:"rooms"}]
+  },
+  {
+    id:"room-pacific", navLabel:null,
+    panorama:"https://pannellum.org/images/bma-1.jpg",
+    yaw:10, pitch:0, hfov:100, autoRotate:.3,
+    panelType:"room-detail", badge:"Pacific",
+    title:"Pacific Double Room", subtitle:"Balcony Bathtub · Ocean View",
+    description:"Phòng cao cấp với bồn tắm riêng trên ban công — ngâm mình trong nước ấm trong khi ngắm toàn cảnh đại dương.",
+    area:42,maxAdults:2,bedType:"1 King Bed",view:"Ocean",floor:"12–18",
+    amenities:["Ocean View","Balcony Bathtub","King Bed","Free WiFi","Air Conditioning","Nespresso","Mini Bar"],
+    price:"3,800,000", subScenes:[],
+    hotspots:[{pitch:-5,yaw:-100,type:"nav",label:"← Xem phòng khác",target:"rooms"}]
+  },
+  {
+    id:"room-suite", navLabel:null,
+    panorama:"https://pannellum.org/images/alma.jpg",
+    yaw:-40, pitch:0, hfov:100, autoRotate:.3,
+    panelType:"room-detail", badge:"Suite",
+    title:"Suite Room", subtitle:"Exclusive Ocean View · 80m²",
+    description:"80m² sang trọng với hai ban công hướng biển, phòng khách riêng biệt. Đẳng cấp thượng lưu cho kỳ nghỉ trọn vẹn.",
+    area:80,maxAdults:3,bedType:"1 King Bed",view:"Ocean",floor:"18–22",
+    amenities:["Exclusive Ocean View","2 Balconies","Living Room","King Bed","Bathtub","Nespresso","Butler Service","Free WiFi"],
+    price:"5,500,000", subScenes:[],
+    hotspots:[{pitch:-4,yaw:-130,type:"nav",label:"← Xem phòng khác",target:"rooms"}]
+  },
+  {
+    id:"dining", navLabel:"Dining",
+    panorama:"https://pannellum.org/images/cerro-toco-0.jpg",
+    yaw:60, pitch:-3, hfov:105, autoRotate:.3,
+    panelType:"service", badge:"Dining",
+    title:"Ẩm Thực Đa Dạng", subtitle:"3 nhà hàng · 1 bar",
+    description:"Boton Blue phục vụ ẩm thực quốc tế và đặc sản địa phương tại 3 nhà hàng riêng biệt cùng Blue Ocean Bar trên tầng cao.",
+    services:[
+      {name:"Guangdong Restaurant",desc:"Ẩm thực Quảng Đông đích thực với dim sum và hải sản tươi."},
+      {name:"Asian Restaurant",desc:"Buffet sáng phong phú và thực đơn Á suốt ngày."},
+      {name:"Sunflower Restaurant",desc:"Nhà hàng chính phục vụ ẩm thực Âu – Á & tiệc sự kiện."},
+      {name:"Blue Ocean Bar",desc:"Cocktail thủ công với view panorama biển, mở từ 16h."},
+    ],
+    hotspots:[
+      {pitch:-6,yaw:-90,type:"nav",label:"← Lobby",target:"lobby"},
+      {pitch:-4,yaw:180,type:"nav",label:"Tiện ích →",target:"recreation"},
+    ]
+  },
+  {
+    id:"recreation", navLabel:"Recreation",
+    panorama:"https://pannellum.org/images/bma-1.jpg",
+    yaw:-50, pitch:0, hfov:110, autoRotate:.4,
+    panelType:"service", badge:"Recreation",
+    title:"Tiện Ích Cao Cấp", subtitle:"Nghỉ dưỡng & Giải trí",
+    description:"Hệ thống tiện ích đa dạng phục vụ mọi nhu cầu nghỉ dưỡng.",
+    services:[
+      {name:"Infinity Pool",desc:"Hồ bơi vô cực trên tầng cao, view 360° vịnh Nha Trang."},
+      {name:"Spa & Wellness",desc:"Liệu trình thư giãn cao cấp từ Á đến Âu."},
+      {name:"Fitness Center",desc:"Phòng tập Technogym hiện đại, mở 24/7."},
+      {name:"Beach Boton Blue",desc:"Bãi biển riêng với dịch vụ phục vụ tận nơi."},
+      {name:"Meetings & Events",desc:"3 phòng hội nghị cho 20–300 khách."},
+    ],
+    hotspots:[
+      {pitch:-5,yaw:120,type:"nav",label:"← Ẩm thực",target:"dining"},
+      {pitch:-3,yaw:-150,type:"nav",label:"Lobby →",target:"lobby"},
+    ]
+  },
+];
+
+const BOOKING_URL = "https://book-directonline.com/properties/botbluhotspadirect";
+const mainNav = SECTIONS.filter(s=>s.navLabel);
+let viewer=null, currentSection=null, uiHidden=false, idleTimer=null, isInteracting=false, activeCard=null, panelExp=false;
+
+// ══════════ INIT ══════════
+function init(){renderNav();navigateTo("lobby",false)}
+
+// ══════════ NAVIGATE ══════════
+function navigateTo(id,anim=true){
+  const sec=SECTIONS.find(s=>s.id===id);if(!sec)return;
+  closeCard();currentSection=sec;updateNav(id);
+  if(!viewer){initViewer(sec)}
+  else if(anim){
+    const p=document.getElementById("contentPanel");
+    p.classList.add("slide-out");
+    setTimeout(()=>{viewer.destroy();initViewer(sec);setTimeout(()=>p.classList.remove("slide-out"),100)},300);
+  }
+  renderPanel(sec);renderSceneNav(sec);
+  if(uiHidden)showAllUI();
+}
+
+// ══════════ VIEWER ══════════
+function initViewer(sec){
+  const hs=(sec.hotspots||[]).map(h=>({
+    pitch:h.pitch,yaw:h.yaw,type:"custom",
+    createTooltipFunc:(el,a)=>{
+      el.classList.add("hs",a.type==="nav"?"hs-nav":"hs-info");
+      const ic=a.type==="nav"
+        ?'<svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>'
+        :'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+      el.innerHTML=ic+'<span>'+a.label+'</span>';
+      el.onclick=(e)=>{e.stopPropagation();if(a.type==="nav")navigateTo(a.target);else showCard(a,e)};
+    },
+    createTooltipArgs:h
+  }));
+  viewer=pannellum.viewer("panorama",{
+    type:"equirectangular",panorama:sec.panorama,autoLoad:true,
+    showControls:false,showFullscreenCtrl:false,compass:false,
+    friction:.15,yaw:sec.yaw||0,pitch:sec.pitch||0,hfov:sec.hfov||100,
+    minHfov:50,maxHfov:120,autoRotate:sec.autoRotate||0,hotSpots:hs,sceneFadeDuration:0
+  });
+  viewer.on("load",()=>{
+    const l=document.getElementById("loader");
+    if(l&&!l.classList.contains("done")){
+      document.getElementById("loaderBar").style.width="100%";
+      document.getElementById("loaderText").textContent="Chào mừng!";
+      setTimeout(()=>l.classList.add("done"),500);
+    }
+  });
+  const el=document.getElementById("panorama");
+  el.addEventListener("mousedown",onS);el.addEventListener("touchstart",onS,{passive:true});
+  el.addEventListener("mouseup",onE);el.addEventListener("touchend",onE);
+  resetIdle();
+}
+
+// ══════════ NAV ══════════
+function renderNav(){
+  document.getElementById("topNav").innerHTML=mainNav.map(s=>`<a href="#" data-s="${s.id}" onclick="event.preventDefault();navigateTo('${s.id}')">${s.navLabel}</a>`).join("");
+  document.getElementById("mobileMenuLinks").innerHTML=mainNav.map(s=>`<a href="#" data-s="${s.id}" onclick="event.preventDefault();navigateTo('${s.id}');toggleMobile()">${s.navLabel}</a>`).join("")+`<a href="#" onclick="event.preventDefault();openBooking();toggleMobile()" style="color:var(--gold)">Book Now</a>`;
+}
+function updateNav(id){
+  let aid=id;const s=SECTIONS.find(x=>x.id===id);
+  if(s&&!s.navLabel){aid=id.startsWith("room-")?"rooms":id.startsWith("dining")?"dining":"lobby"}
+  document.querySelectorAll("[data-s]").forEach(a=>a.classList.toggle("active",a.dataset.s===aid));
+}
+
+// ══════════ PANEL ══════════
+function renderPanel(s){
+  const el=document.getElementById("panelScroll");
+  let h=`<div class="panel-header"><div class="panel-badge">${s.badge}</div><h1 class="panel-title">${s.title}</h1><p class="panel-subtitle">${s.subtitle}</p></div><div class="panel-divider"></div><div class="panel-body"><p class="panel-desc">${s.description.replace(/\n/g,"<br>")}</p>`;
+  if(s.panelType==="welcome"){
+    h+=`<div class="amenities-label">Highlights</div><div class="amenities-grid">${s.highlights.map(x=>`<span class="amenity-tag"><svg style="width:12px;height:12px;stroke:var(--gold);stroke-width:2;fill:none" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> ${x}</span>`).join("")}</div><div class="panel-cta"><button class="btn-cta-primary" onclick="navigateTo('rooms')">Khám Phá Phòng Nghỉ</button><button class="btn-cta-outline" onclick="openBooking()">Check Availability</button></div>`;
+  }
+  if(s.panelType==="room-listing"){
+    h+=`<div class="amenities-label">Chọn hạng phòng</div><div class="room-thumbs">${s.rooms.map(r=>`<div class="room-thumb" onclick="navigateTo('${r.scene}')"><div class="room-thumb-dot"></div><div class="room-thumb-info"><div class="room-thumb-name">${r.name}</div><div class="room-thumb-meta">${r.area}m² · từ ${r.price} VND</div></div><svg class="room-thumb-arrow" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></div>`).join("")}</div><div class="panel-cta"><button class="btn-cta-primary" onclick="openBooking()">Book Now</button></div>`;
+  }
+  if(s.panelType==="room-detail"){
+    h+=`<div class="meta-row"><div class="meta-item"><svg style="width:15px;height:15px;stroke:var(--gold);stroke-width:1.8;fill:none" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></svg> ${s.area}m²</div><div class="meta-item"><svg style="width:15px;height:15px;stroke:var(--gold);stroke-width:1.8;fill:none" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> ${s.maxAdults} Adults</div><div class="meta-item"><svg style="width:15px;height:15px;stroke:var(--gold);stroke-width:1.8;fill:none" viewBox="0 0 24 24"><path d="M2 20v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8"/><path d="M4 11V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v5"/></svg> ${s.bedType}</div><div class="meta-item"><svg style="width:15px;height:15px;stroke:var(--gold);stroke-width:1.8;fill:none" viewBox="0 0 24 24"><path d="m8 3 4 8 5-5 5 15H2L8 3z"/></svg> ${s.view}</div></div>`;
+    h+=`<div class="amenities-label">Tiện nghi</div><div class="amenities-grid">${(s.amenities||[]).map(a=>`<span class="amenity-tag"><svg style="width:12px;height:12px;stroke:var(--gold);stroke-width:2;fill:none" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> ${a}</span>`).join("")}</div>`;
+    h+=`<div class="price-block"><div class="price-label">Giá từ</div><span class="price-amount">${s.price}</span><span class="price-unit"> VND / đêm</span></div>`;
+    h+=`<div class="panel-cta"><button class="btn-cta-primary" onclick="openBooking()">Book Now</button><button class="btn-cta-outline" onclick="openBooking()">Check Availability</button><button class="btn-cta-outline" onclick="navigateTo('rooms')">← Xem phòng khác</button></div>`;
+  }
+  if(s.panelType==="service"){
+    h+=`<div class="amenities-label">Danh sách</div><div class="room-thumbs">${(s.services||[]).map(x=>`<div class="room-thumb" style="cursor:default"><div class="room-thumb-dot"></div><div class="room-thumb-info"><div class="room-thumb-name">${x.name}</div><div class="room-thumb-meta">${x.desc}</div></div></div>`).join("")}</div><div class="panel-cta"><button class="btn-cta-primary" onclick="openBooking()">Enquire Now</button></div>`;
+  }
+  h+=`</div>`;el.innerHTML=h;el.scrollTop=0;
+}
+
+// ══════════ SCENE NAV ══════════
+function renderSceneNav(s){
+  const nav=document.getElementById("sceneNav");
+  if(!s.subScenes||s.subScenes.length<2){nav.classList.add("hidden");return}
+  nav.classList.remove("hidden");
+  nav.innerHTML=s.subScenes.map(x=>`<button class="scene-tab ${x.id===s.id?'active':''}" onclick="navigateTo('${x.id}')">${x.label}</button>`).join("");
+}
+
+// ══════════ SMART UI ══════════
+function onS(){isInteracting=true;clearTimeout(idleTimer);fadeOut()}
+function onE(){isInteracting=false;resetIdle()}
+function resetIdle(){clearTimeout(idleTimer);idleTimer=setTimeout(()=>{if(!isInteracting&&uiHidden)fadeIn()},5000)}
+function fadeOut(){if(uiHidden)return;uiHidden=true;document.getElementById("uiLayer").classList.add("hidden")}
+function fadeIn(){uiHidden=false;document.getElementById("uiLayer").classList.remove("hidden")}
+function showAllUI(){fadeIn();resetIdle()}
+function toggleUI(){if(uiHidden){showAllUI()}else{fadeOut();clearTimeout(idleTimer)}}
+
+// ══════════ INFO CARD ══════════
+function showCard(d,e){closeCard();const c=document.createElement("div");c.className="info-card";c.id="ac";
+  c.style.left=Math.min(e.clientX+12,innerWidth-320)+"px";c.style.top=Math.min(e.clientY-20,innerHeight-180)+"px";
+  c.innerHTML=`<button class="info-card-close" onclick="closeCard()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><div class="info-card-body"><h4>${d.label}</h4><p>${d.desc||""}</p></div>`;
+  document.body.appendChild(c);activeCard=c}
+function closeCard(){if(activeCard){activeCard.remove();activeCard=null}}
+
+// ══════════ MISC ══════════
+function toggleMobile(){document.getElementById("mobileOverlay").classList.toggle("open")}
+function toggleMobilePanel(){panelExp=!panelExp;document.getElementById("contentPanel").classList.toggle("expanded",panelExp)}
+function openBooking(){window.open(BOOKING_URL,"_blank")}
+
+// ══════════ LOADER ══════════
+(function(){let i=0;const s=[[30,"Tải giao diện..."],[55,"Kết nối không gian 360°..."],[80,"Chuẩn bị trải nghiệm..."]];
+  const iv=setInterval(()=>{if(i<s.length){document.getElementById("loaderBar").style.width=s[i][0]+"%";document.getElementById("loaderText").textContent=s[i][1];i++}else clearInterval(iv)},600)})();
+
+document.addEventListener("DOMContentLoaded",init);
+</script>
+</body>
+</html>

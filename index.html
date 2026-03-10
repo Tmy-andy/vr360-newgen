@@ -148,24 +148,54 @@ button{cursor:pointer;border:none;background:none;font-family:inherit;color:inhe
 .info-card p{font-size:13px;line-height:1.7;color:var(--text-dim)}
 
 /* ═══ MOBILE OVERLAY ═══ */
-.mobile-overlay{position:fixed;inset:0;z-index:200;background:var(--panel-solid);backdrop-filter:blur(40px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;opacity:0;visibility:hidden;transition:all .35s}
+.mobile-overlay{position:fixed;inset:0;z-index:200;background:rgba(6,10,16,.97);backdrop-filter:blur(50px);display:flex;flex-direction:column;opacity:0;visibility:hidden;transition:opacity .4s var(--ease),visibility .4s;overflow-y:auto}
 .mobile-overlay.open{opacity:1;visibility:visible}
-.mobile-overlay a{font-family:var(--serif);font-size:28px;font-weight:400;color:var(--text-dim);padding:14px 32px;letter-spacing:.04em;transition:color .2s}
-.mobile-overlay a:hover,.mobile-overlay a.active{color:var(--gold)}
-.mobile-overlay .close-mob{position:absolute;top:20px;right:24px;padding:12px}
-.mobile-overlay .close-mob svg{width:28px;height:28px;stroke:#fff;stroke-width:1.5;fill:none}
+.mobile-overlay .mob-header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;flex-shrink:0}
+.mobile-overlay .mob-logo{display:flex;align-items:center;gap:12px}
+.mobile-overlay .mob-logo img{height:36px;filter:brightness(0) invert(1);opacity:.85}
+.mobile-overlay .mob-logo span{font-family:var(--serif);font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-mute)}
+.mobile-overlay .close-mob{width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:var(--glass);border:1px solid var(--glass-border);border-radius:50%;transition:all .25s}
+.mobile-overlay .close-mob:hover{background:var(--gold-soft);border-color:var(--gold-mid)}
+.mobile-overlay .close-mob svg{width:20px;height:20px;stroke:#fff;stroke-width:1.8;fill:none}
+.mobile-overlay .mob-body{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 40px;gap:0}
+.mobile-overlay .mob-nav-link{display:flex;align-items:center;gap:16px;padding:18px 0;border-bottom:1px solid var(--glass-border);font-family:var(--serif);font-size:32px;font-weight:400;color:var(--text-dim);letter-spacing:.03em;transition:all .3s var(--ease);transform:translateX(-20px);opacity:0}
+.mobile-overlay.open .mob-nav-link{transform:translateX(0);opacity:1}
+.mobile-overlay .mob-nav-link:first-child{border-top:1px solid var(--glass-border)}
+.mobile-overlay .mob-nav-link .mob-nav-num{font-family:var(--sans);font-size:11px;font-weight:600;color:var(--text-mute);letter-spacing:.06em;min-width:24px}
+.mobile-overlay .mob-nav-link:hover,.mobile-overlay .mob-nav-link.active{color:var(--gold)}
+.mobile-overlay .mob-nav-link.active .mob-nav-num{color:var(--gold)}
+.mobile-overlay .mob-nav-link .mob-nav-arrow{margin-left:auto;width:20px;height:20px;stroke:var(--text-mute);stroke-width:1.5;fill:none;opacity:0;transform:translateX(-8px);transition:all .3s var(--ease)}
+.mobile-overlay .mob-nav-link:hover .mob-nav-arrow{opacity:1;transform:translateX(0)}
+.mobile-overlay .mob-cta{margin-top:32px;transform:translateX(-20px);opacity:0;transition:all .4s .4s var(--ease)}
+.mobile-overlay.open .mob-cta{transform:translateX(0);opacity:1}
+.mobile-overlay .mob-cta-btn{display:inline-flex;align-items:center;gap:10px;padding:14px 36px;background:var(--gold);color:var(--dark);font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-radius:100px;transition:all .3s var(--ease)}
+.mobile-overlay .mob-cta-btn:hover{background:#d4b572;box-shadow:0 4px 24px var(--gold-glow)}
+.mobile-overlay .mob-cta-btn svg{width:16px;height:16px;stroke:var(--dark);stroke-width:2;fill:none}
+.mobile-overlay .mob-footer{flex-shrink:0;padding:24px 40px 32px;display:flex;flex-direction:column;gap:16px;border-top:1px solid var(--glass-border);opacity:0;transform:translateY(10px);transition:all .4s .2s var(--ease)}
+.mobile-overlay.open .mob-footer{opacity:1;transform:translateY(0)}
+.mobile-overlay .mob-contact{display:flex;flex-wrap:wrap;gap:20px}
+.mobile-overlay .mob-contact-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-mute);letter-spacing:.02em}
+.mobile-overlay .mob-contact-item svg{width:14px;height:14px;stroke:var(--gold);stroke-width:1.8;fill:none;flex-shrink:0}
+.mobile-overlay .mob-social{display:flex;gap:10px}
+.mobile-overlay .mob-social a{width:38px;height:38px;display:flex;align-items:center;justify-content:center;background:var(--glass);border:1px solid var(--glass-border);border-radius:50%;transition:all .25s}
+.mobile-overlay .mob-social a:hover{background:var(--gold-soft);border-color:var(--gold-mid)}
+.mobile-overlay .mob-social a svg{width:16px;height:16px;stroke:var(--text-dim);stroke-width:1.8;fill:none}
 
 /* ═══ RESPONSIVE ═══ */
 @media(max-width:1100px){.content-panel{width:340px;right:16px;top:74px;bottom:16px}}
 @media(max-width:860px){
   .topbar-nav{display:none}.hamburger{display:flex}
-  .content-panel{right:0;left:0;bottom:0;top:auto;width:100%;max-height:55vh;border-radius:18px 18px 0 0;transform:translateY(calc(100% - 160px))}
+  .content-panel{right:0;left:0;bottom:0;top:auto;width:100%;max-height:90vh;border-radius:18px 18px 0 0;transform:translateY(calc(100% - 160px));transition:transform .4s var(--ease)}
+  .content-panel.dragging{transition:none!important}
   .content-panel.expanded{transform:translateY(0)}
   .content-panel.slide-out{transform:translateY(100%);opacity:0}
-  .panel-drag{display:flex!important;justify-content:center;padding:10px 0 2px;cursor:grab}
-  .panel-drag-bar{width:36px;height:4px;background:var(--text-mute);border-radius:2px}
-  .scene-nav{bottom:calc(160px + 16px)}
-  .location-pill{bottom:calc(160px + 16px);left:16px}
+  .panel-drag{display:flex!important;justify-content:center;padding:14px 0 6px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+  .panel-drag-bar{width:36px;height:4px;background:var(--text-mute);border-radius:2px;transition:width .2s,background .2s}
+  .content-panel.dragging .panel-drag-bar{width:48px;background:var(--gold)}
+  .scene-nav{bottom:calc(160px + 16px);transition:opacity .3s var(--ease),transform .3s var(--ease)}
+  .location-pill{bottom:calc(160px + 16px);left:16px;transition:opacity .3s var(--ease),transform .3s var(--ease)}
+  .content-panel.expanded~.scene-nav,.content-panel.dragging~.scene-nav{opacity:0;pointer-events:none;transform:translateX(-50%) translateY(16px)}
+  .content-panel.expanded~.location-pill,.content-panel.dragging~.location-pill{opacity:0;pointer-events:none;transform:translateY(16px)}
   .topbar{padding:14px 16px}
 }
 @media(min-width:861px){.panel-drag{display:none!important}}
@@ -203,7 +233,7 @@ button{cursor:pointer;border:none;background:none;font-family:inherit;color:inhe
   </div>
 
   <div class="content-panel" id="contentPanel">
-    <div class="panel-drag" onclick="toggleMobilePanel()"><div class="panel-drag-bar"></div></div>
+    <div class="panel-drag"><div class="panel-drag-bar"></div></div>
     <div class="panel-scroll" id="panelScroll"></div>
   </div>
 
@@ -221,10 +251,44 @@ button{cursor:pointer;border:none;background:none;font-family:inherit;color:inhe
 
 <!-- MOBILE MENU -->
 <div class="mobile-overlay" id="mobileOverlay">
-  <button class="close-mob" onclick="toggleMobile()">
-    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-  </button>
-  <div id="mobileMenuLinks"></div>
+  <div class="mob-header">
+    <div class="mob-logo">
+      <img src="https://hotel.botonblue.com/uploads/2/logo/logo-boton-v2.png" alt="Boton Blue">
+    </div>
+    <button class="close-mob" onclick="toggleMobile()">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="mob-body">
+    <div id="mobileMenuLinks"></div>
+    <div class="mob-cta">
+      <a href="#" class="mob-cta-btn" onclick="event.preventDefault();openBooking();toggleMobile()">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Book Now
+      </a>
+    </div>
+  </div>
+  <div class="mob-footer">
+    <div class="mob-contact">
+      <div class="mob-contact-item">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        +84 258 352 9999
+      </div>
+      <div class="mob-contact-item">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/></svg>
+        info@botonblue.com
+      </div>
+      <div class="mob-contact-item">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        86 Trần Phú, Nha Trang
+      </div>
+    </div>
+    <div class="mob-social">
+      <a href="#" title="Facebook"><svg viewBox="0 0 24 24" fill="none"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></a>
+      <a href="#" title="Instagram"><svg viewBox="0 0 24 24" fill="none"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></a>
+      <a href="#" title="YouTube"><svg viewBox="0 0 24 24" fill="none"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19.1c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.43z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/></svg></a>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -429,7 +493,7 @@ function initViewer(sec){
 // ══════════ NAV ══════════
 function renderNav(){
   document.getElementById("topNav").innerHTML=mainNav.map(s=>`<a href="#" data-s="${s.id}" onclick="event.preventDefault();navigateTo('${s.id}')">${s.navLabel}</a>`).join("");
-  document.getElementById("mobileMenuLinks").innerHTML=mainNav.map(s=>`<a href="#" data-s="${s.id}" onclick="event.preventDefault();navigateTo('${s.id}');toggleMobile()">${s.navLabel}</a>`).join("")+`<a href="#" onclick="event.preventDefault();openBooking();toggleMobile()" style="color:var(--gold)">Book Now</a>`;
+  document.getElementById("mobileMenuLinks").innerHTML=mainNav.map((s,i)=>`<a href="#" class="mob-nav-link" data-s="${s.id}" style="transition-delay:${.08+i*.06}s" onclick="event.preventDefault();navigateTo('${s.id}');toggleMobile()"><span class="mob-nav-num">0${i+1}</span>${s.navLabel}<svg class="mob-nav-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>`).join("");
 }
 function updateNav(id){
   let aid=id;const s=SECTIONS.find(x=>x.id===id);
@@ -486,6 +550,80 @@ function closeCard(){if(activeCard){activeCard.remove();activeCard=null}}
 // ══════════ MISC ══════════
 function toggleMobile(){document.getElementById("mobileOverlay").classList.toggle("open")}
 function toggleMobilePanel(){panelExp=!panelExp;document.getElementById("contentPanel").classList.toggle("expanded",panelExp)}
+
+// ══════════ MOBILE PANEL DRAG ══════════
+(function(){
+  let startY=0,startTranslate=0,currentY=0,isDragging=false;
+  const getPanel=()=>document.getElementById("contentPanel");
+  const dragEl=()=>{const p=getPanel();return p?p.querySelector(".panel-drag"):null};
+
+  function getPanelHeight(){const p=getPanel();return p?p.offsetHeight:400}
+  function getCollapsedTranslate(){return getPanelHeight()-160}
+  function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
+
+  function getCurrentTranslateY(el){
+    const st=window.getComputedStyle(el);
+    const m=st.transform||st.webkitTransform;
+    if(!m||m==="none")return 0;
+    const vals=m.match(/matrix.*\((.+)\)/);
+    if(vals){const v=vals[1].split(",");return parseFloat(v[v.length-1])}
+    return 0;
+  }
+
+  function onDragStart(e){
+    const panel=getPanel();if(!panel||window.innerWidth>860)return;
+    isDragging=true;
+    startY=e.type.startsWith("touch")?e.touches[0].clientY:e.clientY;
+    startTranslate=getCurrentTranslateY(panel);
+    panel.classList.add("dragging");
+    panel.classList.remove("expanded");
+    document.addEventListener("mousemove",onDragMove,{passive:false});
+    document.addEventListener("mouseup",onDragEnd);
+    document.addEventListener("touchmove",onDragMove,{passive:false});
+    document.addEventListener("touchend",onDragEnd);
+  }
+
+  function onDragMove(e){
+    if(!isDragging)return;
+    e.preventDefault();
+    const panel=getPanel();if(!panel)return;
+    const clientY=e.type.startsWith("touch")?e.touches[0].clientY:e.clientY;
+    const delta=clientY-startY;
+    const maxT=getCollapsedTranslate();
+    currentY=clamp(startTranslate+delta,0,maxT);
+    panel.style.transform="translateY("+currentY+"px)";
+  }
+
+  function onDragEnd(){
+    if(!isDragging)return;
+    isDragging=false;
+    const panel=getPanel();if(!panel)return;
+    panel.classList.remove("dragging");
+    document.removeEventListener("mousemove",onDragMove);
+    document.removeEventListener("mouseup",onDragEnd);
+    document.removeEventListener("touchmove",onDragMove);
+    document.removeEventListener("touchend",onDragEnd);
+    const maxT=getCollapsedTranslate();
+    const threshold=maxT*0.4;
+    panel.style.transform="";
+    if(currentY<threshold){panelExp=true;panel.classList.add("expanded")}
+    else{panelExp=false;panel.classList.remove("expanded")}
+  }
+
+  document.addEventListener("DOMContentLoaded",function(){
+    const observe=new MutationObserver(()=>{
+      const d=dragEl();
+      if(d&&!d._dragBound){
+        d._dragBound=true;
+        d.addEventListener("mousedown",onDragStart);
+        d.addEventListener("touchstart",onDragStart,{passive:true});
+      }
+    });
+    observe.observe(document.body,{childList:true,subtree:true});
+    const d=dragEl();
+    if(d){d._dragBound=true;d.addEventListener("mousedown",onDragStart);d.addEventListener("touchstart",onDragStart,{passive:true})}
+  });
+})();
 function openBooking(){window.open(BOOKING_URL,"_blank")}
 
 // ══════════ LOADER ══════════

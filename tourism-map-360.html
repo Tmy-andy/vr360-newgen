@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Du Lịch Bà Rịa — Bản Đồ 360°</title>
+
+<!-- Pannellum -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css">
+<script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
+
+<!-- Leaflet mini-map -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- Lucide Icons -->
+<script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js"></script>
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Inter',system-ui,-apple-system,sans-serif;background:#070b14;color:#fff;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}button{cursor:pointer;border:none;background:none;font-family:inherit;color:inherit}
+[data-lucide]{width:14px;height:14px;stroke:currentColor;stroke-width:1.8;fill:none;display:inline-block;vertical-align:middle}
+
+:root{
+  --accent:#22D3A7;--accent-glow:rgba(34,211,167,.35);--accent-soft:rgba(34,211,167,.1);
+  --orange:#F59E0B;--blue:#3B82F6;--pink:#EC4899;--red:#EF4444;--purple:#8B5CF6;
+  --dark:#070b14;--panel:rgba(10,16,30,.88);--panel-solid:rgba(10,16,30,.96);
+  --glass:rgba(255,255,255,.05);--glass-border:rgba(255,255,255,.08);--glass-hover:rgba(255,255,255,.12);
+  --text:#fff;--text-dim:rgba(255,255,255,.65);--text-mute:rgba(255,255,255,.35);
+  --sans:'Inter',system-ui,-apple-system,sans-serif;
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+
+/* ═══ PANORAMA BG ═══ */
+#panorama{position:fixed;inset:0;z-index:0}
+#panorama .pnlm-container{width:100%!important;height:100%!important}
+.pnlm-controls-container,.pnlm-about-msg,.pnlm-load-button,.pnlm-orientation-button,.pnlm-compass{display:none!important}
+.pnlm-hotspot-base{background:none!important;width:auto!important;height:auto!important}
+.pnlm-sprite{display:none!important}
+.pnlm-tooltip{background:none!important;border:none!important;padding:0!important;box-shadow:none!important;min-width:auto!important;max-width:none!important;pointer-events:auto!important}
+.pnlm-tooltip span{display:none!important}
+.pnlm-pointer{display:none!important}
+
+/* ═══ LOADER ═══ */
+.loader{position:fixed;inset:0;z-index:9999;background:var(--dark);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .8s,visibility .8s}
+.loader.done{opacity:0;visibility:hidden;pointer-events:none}
+.loader-title{font-size:28px;font-weight:700;letter-spacing:.08em;margin-bottom:10px}
+.loader-title span{color:var(--accent)}
+.loader-sub{font-size:13px;color:var(--text-mute);letter-spacing:.06em;margin-bottom:30px}
+.loader-ring{width:40px;height:40px;border:2px solid var(--glass-border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ═══ UI LAYER ═══ */
+.ui{position:fixed;inset:0;z-index:10;pointer-events:none}
+.ui>*{pointer-events:auto}
+
+/* Smart UI — hide on 360 interaction */
+.ui.hidden .topbar,
+.ui.hidden .poi-panel,
+.ui.hidden .detail-panel,
+.ui.hidden .minimap-wrap,
+.ui.hidden .scene-indicator{opacity:0;pointer-events:none;transform:translateY(8px)}
+.ui.hidden .topbar{transform:translateY(-20px)}
+.ui.hidden .poi-panel,.ui.hidden .detail-panel{transform:translateX(calc(100% + 20px))}
+
+/* Restore button — always visible */
+.ui-restore{
+  position:absolute;bottom:20px;right:20px;z-index:50;
+  width:44px;height:44px;display:flex;align-items:center;justify-content:center;
+  background:var(--panel);backdrop-filter:blur(20px);
+  border:1px solid var(--glass-border);border-radius:12px;
+  opacity:0;pointer-events:none;transition:all .3s var(--ease);cursor:pointer;
+}
+.ui-restore svg{width:20px;height:20px;stroke:var(--accent);stroke-width:1.8;fill:none}
+.ui-restore:hover{background:var(--glass-hover);border-color:rgba(34,211,167,.3);transform:scale(1.05)}
+.ui.hidden .ui-restore{opacity:1;pointer-events:auto;transform:none}
+
+/* ═══ TOP BAR ═══ */
+.topbar{
+  position:absolute;top:0;left:0;right:0;z-index:40;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 22px;
+  background:linear-gradient(180deg,rgba(7,11,20,.8) 0%,transparent 100%);
+  transition:opacity .4s var(--ease),transform .4s var(--ease);
+}
+.topbar-brand{display:flex;align-items:center;gap:12px}
+.topbar-icon{width:36px;height:36px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--dark)}
+.topbar-text h1{font-size:15px;font-weight:700;letter-spacing:.02em;line-height:1.3}
+.topbar-text p{font-size:10.5px;color:var(--text-mute);letter-spacing:.04em;margin-top:1px}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.tb-btn{
+  height:34px;padding:0 12px;display:flex;align-items:center;gap:6px;
+  background:var(--glass);border:1px solid var(--glass-border);border-radius:8px;
+  font-size:12px;font-weight:600;color:var(--text-dim);transition:all .2s;
+}
+.tb-btn:hover{background:var(--glass-hover);border-color:rgba(255,255,255,.15);color:#fff}
+.tb-btn svg{width:14px;height:14px;stroke:currentColor;stroke-width:1.8;fill:none}
+.tb-btn.active{background:var(--accent-soft);border-color:rgba(34,211,167,.3);color:var(--accent)}
+
+/* ═══ CATEGORY FILTER CHIPS (inside poi-panel) ═══ */
+.poi-filters{
+  display:flex;gap:7px;padding:0 0 14px;overflow-x:auto;flex-wrap:wrap;
+  scrollbar-width:none;-ms-overflow-style:none;
+}
+.poi-filters::-webkit-scrollbar{display:none}
+.filter-chip{
+  display:flex;align-items:center;gap:6px;padding:6px 12px;
+  background:var(--glass);border:1px solid var(--glass-border);border-radius:100px;
+  font-size:12px;font-weight:500;letter-spacing:.01em;
+  color:var(--text-mute);white-space:nowrap;cursor:pointer;
+  transition:all .25s var(--ease);flex-shrink:0;
+}
+.filter-chip .chip-icon{width:14px;height:14px;stroke:currentColor;stroke-width:1.6;fill:none}
+.filter-chip:hover{color:var(--text-dim);background:var(--glass-hover);border-color:rgba(255,255,255,.12)}
+.filter-chip.active{color:var(--accent);background:var(--accent-soft);border-color:rgba(34,211,167,.3)}
+.filter-chip.active .chip-icon{stroke:var(--accent)}
+.filter-chip .chip-check{
+  width:14px;height:14px;border-radius:4px;
+  border:1.5px solid var(--text-mute);
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s var(--ease);flex-shrink:0;
+}
+.filter-chip .chip-check svg{width:10px;height:10px;stroke:#fff;stroke-width:2.5;fill:none;opacity:0;transition:opacity .15s}
+.filter-chip .chip-check .chip-check-icon{width:10px;height:10px;stroke:#fff;stroke-width:2.5;fill:none;opacity:0;transition:opacity .15s}
+.filter-chip.active .chip-check{background:var(--accent);border-color:var(--accent)}
+.filter-chip.active .chip-check svg{opacity:1}
+.filter-chip.active .chip-check .chip-check-icon{opacity:1}
+.filter-chip .chip-count{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:16px;height:16px;padding:0 4px;
+  background:rgba(255,255,255,.08);border-radius:8px;
+  font-size:9px;font-weight:800;color:var(--text-mute);
+}
+.filter-chip.active .chip-count{background:rgba(34,211,167,.2);color:var(--accent)}
+
+/* ═══ POI LIST PANEL (right) ═══ */
+.poi-panel{
+  position:absolute;right:14px;top:64px;bottom:14px;width:350px;
+  background:var(--panel);backdrop-filter:blur(40px) saturate(1.3);
+  border:1px solid var(--glass-border);border-radius:14px;
+  display:flex;flex-direction:column;overflow:hidden;
+  transition:opacity .5s var(--ease),transform .5s var(--ease);
+}
+.poi-panel.collapsed{width:350px;transform:translateX(calc(100% + 20px));opacity:0;pointer-events:none}
+.poi-header{padding:18px 18px 0}
+.poi-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.poi-header h2{font-size:17px;font-weight:700;line-height:1.3}
+.poi-close{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:var(--glass);border-radius:8px;transition:background .2s}
+.poi-close:hover{background:var(--glass-hover)}
+.poi-close svg{width:14px;height:14px;stroke:var(--text-dim);stroke-width:2;fill:none}
+.poi-search{
+  display:flex;align-items:center;gap:10px;padding:0 12px;height:38px;
+  background:var(--glass);border:1px solid var(--glass-border);border-radius:10px;
+  margin-bottom:14px;
+}
+.poi-search svg{width:15px;height:15px;stroke:var(--text-mute);stroke-width:1.8;fill:none;flex-shrink:0}
+.poi-search input{
+  flex:1;background:none;border:none;outline:none;color:#fff;
+  font-size:13px;font-family:var(--sans);line-height:1.4;
+}
+.poi-search input::placeholder{color:var(--text-mute)}
+.poi-list{flex:1;overflow-y:auto;padding:0 10px 10px;scrollbar-width:thin;scrollbar-color:var(--glass-border) transparent}
+.poi-list::-webkit-scrollbar{width:4px}
+.poi-list::-webkit-scrollbar-thumb{background:var(--glass-border);border-radius:2px}
+
+/* POI Card */
+.poi-card{
+  display:flex;gap:12px;padding:10px;margin-bottom:6px;
+  background:var(--glass);border:1px solid transparent;border-radius:10px;
+  cursor:pointer;transition:all .25s;align-items:center;
+}
+.poi-card:hover{background:var(--glass-hover);border-color:var(--glass-border)}
+.poi-card.active{background:var(--accent-soft);border-color:rgba(34,211,167,.3)}
+.poi-thumb{
+  width:54px;height:54px;flex-shrink:0;border-radius:8px;overflow:hidden;
+  background:var(--glass);position:relative;
+}
+.poi-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.poi-card-info{flex:1;min-width:0}
+.poi-card-name{font-size:13.5px;font-weight:600;margin-bottom:3px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.poi-card-addr{font-size:11px;color:var(--text-mute);margin-bottom:5px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.poi-card-tags{display:flex;gap:4px;flex-wrap:wrap}
+.poi-tag{padding:2px 7px;background:var(--glass);border-radius:100px;font-size:10px;color:var(--text-dim);font-weight:500;line-height:1.4}
+.poi-card-arrow{display:flex;align-items:center;flex-shrink:0}
+.poi-card-arrow svg{width:14px;height:14px;stroke:var(--text-mute);stroke-width:1.8;fill:none}
+
+/* ═══ DETAIL PANEL (replaces poi list when viewing a POI) ═══ */
+.detail-panel{
+  position:absolute;right:14px;top:64px;bottom:14px;width:350px;
+  background:var(--panel);backdrop-filter:blur(40px) saturate(1.3);
+  border:1px solid var(--glass-border);border-radius:14px;
+  display:flex;flex-direction:column;overflow:hidden;
+  transition:opacity .5s var(--ease),transform .5s var(--ease);
+  opacity:0;transform:translateX(30px);pointer-events:none;
+}
+.detail-panel.visible{opacity:1;transform:none;pointer-events:auto}
+.detail-scroll{flex:1;overflow-y:auto;padding:0;scrollbar-width:thin;scrollbar-color:var(--glass-border) transparent}
+.detail-back{
+  display:flex;align-items:center;gap:8px;padding:18px 18px 12px;
+  font-size:13px;font-weight:600;color:var(--text-dim);cursor:pointer;transition:color .2s;
+}
+.detail-back:hover{color:var(--accent)}
+.detail-back svg{width:14px;height:14px;stroke:currentColor;stroke-width:2;fill:none}
+.detail-head{padding:0 18px 14px}
+.detail-badge{display:inline-block;padding:4px 10px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px}
+.detail-name{font-size:22px;font-weight:700;line-height:1.3;margin-bottom:6px}
+.detail-addr{font-size:13px;color:var(--text-dim);display:flex;align-items:center;gap:6px;margin-bottom:14px;line-height:1.4}
+.detail-addr svg{width:14px;height:14px;stroke:var(--accent);stroke-width:1.8;fill:none;flex-shrink:0}
+.detail-divider{height:1px;background:var(--glass-border);margin:0 18px}
+.detail-body{padding:16px 18px 20px}
+.detail-desc{font-size:13.5px;line-height:1.75;color:var(--text-dim);margin-bottom:20px}
+.detail-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+.detail-info-item{
+  display:flex;align-items:center;gap:8px;padding:10px 12px;
+  background:var(--glass);border-radius:9px;font-size:12px;color:var(--text-dim);line-height:1.4;
+}
+.detail-info-item svg{width:15px;height:15px;stroke:var(--accent);stroke-width:1.8;fill:none;flex-shrink:0}
+.detail-cta{display:flex;gap:8px}
+.btn-accent{
+  flex:1;padding:12px;text-align:center;background:var(--accent);color:var(--dark);
+  font-size:13px;font-weight:700;letter-spacing:.04em;border-radius:10px;
+  transition:all .3s var(--ease);
+}
+.btn-accent:hover{box-shadow:0 4px 20px var(--accent-glow);transform:translateY(-1px)}
+.btn-outline{
+  flex:1;padding:12px;text-align:center;border:1px solid var(--glass-border);
+  color:var(--text-dim);font-size:13px;font-weight:600;border-radius:10px;
+  transition:all .2s;
+}
+.btn-outline:hover{border-color:rgba(34,211,167,.3);color:var(--accent)}
+
+/* ═══ MINI MAP ═══ */
+.minimap-wrap{
+  position:absolute;bottom:14px;left:14px;z-index:100;
+  width:200px;height:150px;border-radius:12px;overflow:hidden;
+  border:1px solid var(--glass-border);box-shadow:0 8px 32px rgba(0,0,0,.4);
+  transition:all .4s var(--ease);
+  min-width:140px;min-height:100px;
+  max-width:calc(100vw - 28px);max-height:calc(100vh - 28px);
+}
+.minimap-wrap.hidden{opacity:0;transform:translateY(16px);pointer-events:none}
+.minimap-wrap.resizing{transition:none}
+.minimap-wrap.expanded{
+  width:calc(100vw - 28px)!important;height:calc(100vh - 28px)!important;
+  border-radius:16px;
+  box-shadow:0 16px 64px rgba(0,0,0,.6);
+}
+#minimap{width:100%;height:100%;filter:brightness(.78) contrast(1.15) saturate(.85)}
+.leaflet-control-attribution{display:none!important}
+.leaflet-control-zoom{display:none!important}
+
+/* Minimap drag handle (move frame on screen) */
+.minimap-drag-handle{cursor:grab!important}
+.minimap-drag-handle:active{cursor:grabbing!important}
+.minimap-wrap.dragging{transition:none}
+
+/* ═══ MINIMAP TOOLBAR ═══ */
+.minimap-toolbar{
+  position:absolute;top:6px;left:6px;right:6px;z-index:35;
+  display:flex;align-items:center;justify-content:space-between;
+  pointer-events:none;
+}
+.minimap-toolbar>*{pointer-events:auto}
+.minimap-tb-group{display:flex;gap:3px}
+.minimap-tb-btn{
+  width:26px;height:26px;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.5);backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.1);border-radius:7px;
+  cursor:pointer;transition:all .2s;
+}
+.minimap-tb-btn svg{width:13px;height:13px;stroke:rgba(255,255,255,.6);stroke-width:2;fill:none}
+.minimap-tb-btn:hover{background:rgba(0,0,0,.7);border-color:rgba(255,255,255,.2)}
+.minimap-tb-btn:hover svg{stroke:#fff}
+.minimap-tb-btn.active{background:rgba(34,211,167,.2);border-color:rgba(34,211,167,.4)}
+.minimap-tb-btn.active svg{stroke:var(--accent)}
+
+/* ═══ TOGGLE MAP BUTTON (topbar) ═══ */
+.tb-btn-map{position:relative}
+.tb-btn-map .toggle-dot{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;
+  background:var(--text-mute);transition:all .25s;
+}
+.tb-btn-map.active .toggle-dot{background:var(--accent);box-shadow:0 0 8px var(--accent-glow)}
+
+/* ═══ MINIMAP RESIZE HANDLE ═══ */
+.minimap-resize{
+  position:absolute;top:0;right:0;z-index:30;
+  width:22px;height:22px;cursor:ne-resize;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.35);backdrop-filter:blur(8px);
+  border-radius:0 12px 0 8px;
+  transition:background .2s;
+}
+.minimap-resize:hover{background:rgba(34,211,167,.25)}
+.minimap-resize svg{width:12px;height:12px;stroke:rgba(255,255,255,.5);stroke-width:2;fill:none}
+.minimap-resize:hover svg{stroke:var(--accent)}
+
+.minimap-resize-br{
+  position:absolute;bottom:0;right:0;z-index:30;
+  width:22px;height:22px;cursor:se-resize;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.35);backdrop-filter:blur(8px);
+  border-radius:12px 0 12px 0;
+  transition:background .2s;
+}
+.minimap-resize-br:hover{background:rgba(34,211,167,.25)}
+.minimap-resize-br svg{width:12px;height:12px;stroke:rgba(255,255,255,.5);stroke-width:2;fill:none}
+.minimap-resize-br:hover svg{stroke:var(--accent)}
+
+/* ═══ SCENE INDICATOR (bottom center) ═══ */
+.scene-indicator{
+  position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:25;
+  display:flex;align-items:center;gap:10px;
+  padding:10px 18px;background:var(--panel);backdrop-filter:blur(30px);
+  border:1px solid var(--glass-border);border-radius:100px;
+  font-size:13px;color:var(--text-dim);line-height:1.4;
+  transition:opacity .4s var(--ease),transform .4s var(--ease);
+}
+.scene-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.scene-indicator strong{color:#fff;font-weight:600}
+
+/* ═══ HOTSPOT MARKERS ═══ */
+.marker{
+  display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;
+  transition:transform .3s var(--ease);animation:markerFloat 3s ease-in-out infinite;
+}
+.marker:hover{transform:scale(1.12)}
+.marker-pin{
+  width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-size:18px;box-shadow:0 4px 16px rgba(0,0,0,.4);position:relative;
+}
+.marker-pin::after{
+  content:'';position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);
+  width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;
+}
+.marker-label{
+  padding:4px 12px;background:var(--panel);backdrop-filter:blur(10px);
+  border-radius:7px;font-size:12px;font-weight:600;white-space:nowrap;line-height:1.4;
+  max-width:140px;overflow:hidden;text-overflow:ellipsis;
+}
+@keyframes markerFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+
+/* Category colors */
+.cat-beach{--catc:#22D3A7}.cat-temple{--catc:#F59E0B}.cat-food{--catc:#EC4899}
+.cat-nature{--catc:#3B82F6}.cat-history{--catc:#8B5CF6}.cat-resort{--catc:#EF4444}
+.marker-pin.cat-beach{background:#22D3A7;color:#000}.marker-pin.cat-beach::after{border-top-color:#22D3A7}
+.marker-pin.cat-temple{background:#F59E0B;color:#000}.marker-pin.cat-temple::after{border-top-color:#F59E0B}
+.marker-pin.cat-food{background:#EC4899;color:#fff}.marker-pin.cat-food::after{border-top-color:#EC4899}
+.marker-pin.cat-nature{background:#3B82F6;color:#fff}.marker-pin.cat-nature::after{border-top-color:#3B82F6}
+.marker-pin.cat-history{background:#8B5CF6;color:#fff}.marker-pin.cat-history::after{border-top-color:#8B5CF6}
+.marker-pin.cat-resort{background:#EF4444;color:#fff}.marker-pin.cat-resort::after{border-top-color:#EF4444}
+
+/* ═══ RESPONSIVE ═══ */
+/* panel-drag: hidden on desktop */
+.panel-drag{display:none}
+@media(max-width:860px){
+  /* Bottom sheet panels */
+  .poi-panel,.detail-panel{
+    right:0;left:0;top:auto;bottom:0;width:100%;max-height:90vh;
+    border-radius:16px 16px 0 0;
+    transform:translateY(calc(100% - 160px));
+    transition:transform .4s var(--ease);
+  }
+  .poi-panel.collapsed{transform:translateY(100%)}
+  .poi-panel.dragging,.detail-panel.dragging{transition:none!important}
+  .poi-panel.expanded,.detail-panel.expanded{transform:translateY(0)}
+  .detail-panel{transform:translateY(100%)}
+  .detail-panel.visible{transform:translateY(calc(100% - 160px))}
+  .detail-panel.visible.expanded{transform:translateY(0)}
+
+  /* Drag bar */
+  .panel-drag{display:flex!important;justify-content:center;padding:14px 0 6px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+  .panel-drag-bar{width:36px;height:4px;background:var(--text-mute);border-radius:2px;transition:width .2s,background .2s}
+  .poi-panel.dragging .panel-drag-bar,.detail-panel.dragging .panel-drag-bar{width:48px;background:var(--accent)}
+
+  /* Scene indicator: sit above collapsed panel */
+  .scene-indicator{
+    bottom:calc(160px + 12px);left:50%;transform:translateX(-50%);
+    transition:opacity .3s var(--ease),transform .3s var(--ease);
+  }
+  /* Hide scene indicator when panel expanded or dragging */
+  .poi-panel.expanded~.scene-indicator,
+  .poi-panel.dragging~.scene-indicator,
+  .detail-panel.visible~.scene-indicator{
+    opacity:0;pointer-events:none;transform:translateX(-50%) translateY(16px);
+  }
+
+  .filter-chip{padding:5px 10px;font-size:11px}
+  .filter-chip svg{width:13px;height:13px}
+  .poi-close{display:none}
+  #btnList{display:none}
+  .minimap-wrap{width:150px;height:110px;left:auto;bottom:auto;right:6px;top:52px;min-width:110px;min-height:80px}
+  .minimap-wrap.expanded{width:calc(100vw - 12px)!important;height:calc(100vh - 12px)!important}
+  .minimap-resize{width:20px;height:20px}
+  .minimap-resize svg{width:10px;height:10px}
+  .minimap-resize-br{width:20px;height:20px}
+  .minimap-resize-br svg{width:10px;height:10px}
+  .minimap-tb-btn{width:24px;height:24px}
+  .minimap-tb-btn svg{width:11px;height:11px}
+  .topbar{padding:12px 14px}
+  .topbar-text p{display:none}
+  .ui-restore{bottom:14px;right:14px;width:38px;height:38px}
+  .ui-restore svg{width:18px;height:18px}
+  .ui.hidden .poi-panel,.ui.hidden .detail-panel{transform:translateY(100%)}
+}
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div class="loader" id="loader">
+  <div class="loader-title">Bản Đồ <span>360°</span></div>
+  <div class="loader-sub">DU LỊCH BÀ RỊA — VŨNG TÀU</div>
+  <div class="loader-ring"></div>
+</div>
+
+<!-- PANORAMA = MAP BACKGROUND -->
+<div id="panorama"></div>
+
+<!-- UI -->
+<div class="ui" id="ui">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-icon">360</div>
+      <div class="topbar-text">
+        <h1>Du Lịch Bà Rịa</h1>
+        <p>BẢN ĐỒ THỰC TẾ ẢO 360°</p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="tb-btn tb-btn-map active" id="btnMap" onclick="toggleMinimap()">
+        <span class="toggle-dot"></span>
+        <i data-lucide="map"></i>
+        Bản đồ
+      </button>
+      <button class="tb-btn tb-btn-map active" id="btnList" onclick="togglePoiPanel()">
+        <span class="toggle-dot"></span>
+        <i data-lucide="list"></i>
+        Danh sách
+      </button>
+    </div>
+  </div>
+
+  <!-- POI LIST PANEL -->
+  <div class="poi-panel" id="poiPanel">
+    <div class="panel-drag"><div class="panel-drag-bar"></div></div>
+    <div class="poi-header">
+      <div class="poi-header-top">
+        <h2 id="poiPanelTitle">Điểm đến</h2>
+        <button class="poi-close" onclick="togglePoiPanel()">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="poi-search">
+        <i data-lucide="search"></i>
+        <input type="text" placeholder="Tìm kiếm địa điểm..." id="searchInput" oninput="filterPOIs()">
+      </div>
+      <div class="poi-filters" id="poiFilters"></div>
+    </div>
+    <div class="poi-list" id="poiList"></div>
+  </div>
+
+  <!-- DETAIL PANEL -->
+  <div class="detail-panel" id="detailPanel">
+    <div class="panel-drag"><div class="panel-drag-bar"></div></div>
+    <div class="detail-scroll" id="detailScroll"></div>
+  </div>
+
+  <!-- MINI MAP -->
+  <div class="minimap-wrap" id="minimapWrap">
+    <div class="minimap-toolbar">
+      <div class="minimap-tb-group">
+        <!-- Move frame on screen (drag handle) -->
+        <button class="minimap-tb-btn minimap-drag-handle" id="btnMapMove" title="Giữ và kéo để di chuyển">
+          <i data-lucide="move"></i>
+        </button>
+        <!-- Expand -->
+        <button class="minimap-tb-btn" id="btnMapExpand" onclick="toggleMapExpand()" title="Mở rộng bản đồ">
+          <i data-lucide="maximize-2"></i>
+        </button>
+        <!-- Close -->
+        <button class="minimap-tb-btn" onclick="toggleMinimap()" title="Ẩn bản đồ">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+    </div>
+    <div class="minimap-resize" id="minimapResize" title="Kéo để thay đổi kích thước">
+      <svg viewBox="0 0 12 12"><path d="M2 10L10 2M6 10L10 6"/></svg>
+    </div>
+    <div class="minimap-resize-br" id="minimapResizeBR" title="Kéo để thay đổi kích thước">
+      <svg viewBox="0 0 12 12"><path d="M2 2L10 10M6 2L10 6"/></svg>
+    </div>
+    <div id="minimap"></div>
+  </div>
+
+  <!-- SCENE INDICATOR -->
+  <div class="scene-indicator" id="sceneIndicator">
+    <div class="scene-dot" id="sceneDot" style="background:var(--accent)"></div>
+    <span id="sceneLabel"><strong>Tổng quan</strong> · Bà Rịa — Vũng Tàu</span>
+  </div>
+
+  <!-- UI RESTORE BUTTON -->
+  <button class="ui-restore" id="uiRestore" onclick="showAllUI()">
+    <i data-lucide="eye"></i>
+  </button>
+
+</div>
+
+<script>
+// ══════════════════════════════════════
+// DATA
+// ══════════════════════════════════════
+const CATEGORIES = [
+  {id:"all", label:"Tất cả", icon:"globe"},
+  {id:"beach", label:"Biển", icon:"waves", color:"#22D3A7"},
+  {id:"temple", label:"Tâm linh", icon:"church", color:"#F59E0B"},
+  {id:"food", label:"Ẩm thực", icon:"utensils", color:"#EC4899"},
+  {id:"nature", label:"Thiên nhiên", icon:"trees", color:"#3B82F6"},
+  {id:"history", label:"Di tích", icon:"landmark", color:"#8B5CF6"},
+  {id:"resort", label:"Nghỉ dưỡng", icon:"hotel", color:"#EF4444"},
+];
+
+const OVERVIEW = {
+  panorama:"https://pannellum.org/images/cerro-toco-0.jpg",
+  yaw:80, pitch:10, hfov:120, autoRotate:0.2,
+};
+
+const POIS = [
+  {
+    id:1, cat:"beach", name:"Bãi Trước", addr:"Tp. Vũng Tàu",
+    lat:10.3460, lng:107.0723,
+    pitch:-10, yaw:40,
+    panorama:"https://pannellum.org/images/alma.jpg",
+    pYaw:30, pPitch:0, pHfov:105,
+    thumb:"https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=120&h=120&fit=crop",
+    desc:"Bãi Trước nằm ngay trung tâm thành phố Vũng Tàu, là bãi biển yên tĩnh với đường cong mềm mại và hàng dừa nghiêng bóng. Nơi đây lý tưởng cho buổi chiều đi dạo ngắm hoàng hôn.",
+    tags:["Biển","Miễn phí","Hoàng hôn"],
+    hours:"Cả ngày", distance:"0 km từ trung tâm",
+    emoji:"🏖️"
+  },
+  {
+    id:2, cat:"beach", name:"Bãi Sau", addr:"Tp. Vũng Tàu",
+    lat:10.3380, lng:107.0850,
+    pitch:-8, yaw:120,
+    panorama:"https://pannellum.org/images/bma-1.jpg",
+    pYaw:-20, pPitch:0, pHfov:110,
+    thumb:"https://images.unsplash.com/photo-1519046904884-53103b34b206?w=120&h=120&fit=crop",
+    desc:"Bãi Sau (Thùy Vân) dài hơn 8km với sóng lớn, là thiên đường cho các hoạt động thể thao biển. Dọc bãi biển có nhiều quán hải sản tươi sống.",
+    tags:["Biển","Hải sản","Sóng lớn"],
+    hours:"Cả ngày", distance:"3 km từ trung tâm",
+    emoji:"🌊"
+  },
+  {
+    id:3, cat:"temple", name:"Tượng Chúa Kitô", addr:"Núi Nhỏ, Vũng Tàu",
+    lat:10.3280, lng:107.0845,
+    pitch:15, yaw:180,
+    panorama:"https://pannellum.org/images/cerro-toco-0.jpg",
+    pYaw:0, pPitch:10, pHfov:100,
+    thumb:"https://images.unsplash.com/photo-1564769662533-4f00a87b4056?w=120&h=120&fit=crop",
+    desc:"Tượng Chúa Kitô Vua đứng trên đỉnh Núi Nhỏ, cao 32m (bao gồm bệ). Từ đây có thể nhìn toàn cảnh thành phố Vũng Tàu và biển xanh bao la. Leo 811 bậc thang để lên đến nơi.",
+    tags:["Tâm linh","Panorama","Leo núi"],
+    hours:"7:30–11:30, 13:30–17:00", distance:"2 km",
+    emoji:"✝️"
+  },
+  {
+    id:4, cat:"nature", name:"Núi Dinh", addr:"H. Tân Thành",
+    lat:10.5030, lng:107.0980,
+    pitch:20, yaw:-50,
+    panorama:"https://pannellum.org/images/alma.jpg",
+    pYaw:60, pPitch:5, pHfov:110,
+    thumb:"https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=120&h=120&fit=crop",
+    desc:"Núi Dinh cao 504m là điểm trekking và camping yêu thích. Trên đỉnh có chùa và khung cảnh thiên nhiên hùng vĩ nhìn ra toàn bộ vùng Bà Rịa - Vũng Tàu.",
+    tags:["Trekking","Chùa","Thiên nhiên"],
+    hours:"Cả ngày", distance:"25 km",
+    emoji:"⛰️"
+  },
+  {
+    id:5, cat:"food", name:"Chợ Hải Sản Vũng Tàu", addr:"Đường Trần Phú, Vũng Tàu",
+    lat:10.3500, lng:107.0750,
+    pitch:-5, yaw:-120,
+    panorama:"https://pannellum.org/images/bma-1.jpg",
+    pYaw:-40, pPitch:-5, pHfov:100,
+    thumb:"https://images.unsplash.com/photo-1559339352-11d035aa65de?w=120&h=120&fit=crop",
+    desc:"Chợ hải sản lớn nhất Vũng Tàu với tôm hùm, cua, ghẹ, mực tươi sống. Có dịch vụ chế biến tại chỗ, giá cả phải chăng hơn nhà hàng.",
+    tags:["Hải sản","Chợ","Giá rẻ"],
+    hours:"5:00–18:00", distance:"1 km",
+    emoji:"🦀"
+  },
+  {
+    id:6, cat:"history", name:"Bạch Dinh", addr:"Tp. Vũng Tàu",
+    lat:10.3400, lng:107.0720,
+    pitch:5, yaw:-20,
+    panorama:"https://pannellum.org/images/cerro-toco-0.jpg",
+    pYaw:120, pPitch:-5, pHfov:100,
+    thumb:"https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=120&h=120&fit=crop",
+    desc:"Bạch Dinh (Villa Blanche) là biệt thự trắng kiến trúc Pháp từ thế kỷ 19, nằm trên sườn núi Lớn. Bên trong trưng bày đồ cổ quý giá và gốm sứ triều Nguyễn.",
+    tags:["Di tích","Kiến trúc Pháp","Bảo tàng"],
+    hours:"7:00–17:00", distance:"1.5 km",
+    emoji:"🏛️"
+  },
+  {
+    id:7, cat:"resort", name:"Hồ Tràm Strip", addr:"Xuyên Mộc",
+    lat:10.4760, lng:107.3750,
+    pitch:-2, yaw:250,
+    panorama:"https://pannellum.org/images/alma.jpg",
+    pYaw:-60, pPitch:0, pHfov:105,
+    thumb:"https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=120&h=120&fit=crop",
+    desc:"Khu phức hợp nghỉ dưỡng cao cấp bao gồm casino, khách sạn 5 sao, bãi biển riêng và sân golf 18 lỗ. Điểm đến hàng đầu cho du lịch sang trọng tại BRVT.",
+    tags:["Resort","Casino","5 sao"],
+    hours:"24/7", distance:"45 km",
+    emoji:"🏨"
+  },
+  {
+    id:8, cat:"nature", name:"Côn Đảo", addr:"H. Côn Đảo",
+    lat:8.6832, lng:106.6093,
+    pitch:12, yaw:300,
+    panorama:"https://pannellum.org/images/bma-1.jpg",
+    pYaw:20, pPitch:5, pHfov:110,
+    thumb:"https://images.unsplash.com/photo-1559128010-7c1ad6e1b6a5?w=120&h=120&fit=crop",
+    desc:"Quần đảo Côn Đảo gồm 16 hòn đảo với hệ sinh thái biển nguyên sơ, rạn san hô tuyệt đẹp và rùa biển đẻ trứng. Nơi đây cũng là di tích lịch sử cách mạng quan trọng.",
+    tags:["Đảo","Lặn biển","Di tích"],
+    hours:"Cả ngày", distance:"180 km (bay)",
+    emoji:"🐢"
+  },
+];
+
+// ══════════ STATE ══════════
+let viewer=null, map=null, activeCats=new Set(), activePOI=null, viewMode="overview";
+let poiPanelOpen=true, minimapVisible=true, markers=[];
+
+// ══════════ INIT ══════════
+function init(){
+  renderCategories();
+  renderPOIList();
+  loadOverview();
+  initMinimap();
+}
+
+// ══════════ PANORAMA ══════════
+function loadOverview(){
+  viewMode="overview"; activePOI=null;
+  if(viewer){viewer.destroy();viewer=null}
+  const hs = getFilteredPOIs().map(p=>({
+    pitch:p.pitch, yaw:p.yaw, type:"custom",
+    createTooltipFunc:(el,a)=>{
+      el.className="marker";
+      el.innerHTML=`<div class="marker-pin cat-${a.cat}">${a.emoji}</div><div class="marker-label">${a.name}</div>`;
+      el.onclick=e=>{e.stopPropagation();openPOI(a.id)}
+    },
+    createTooltipArgs:p
+  }));
+  viewer=pannellum.viewer("panorama",{
+    type:"equirectangular", panorama:OVERVIEW.panorama, autoLoad:true,
+    showControls:false, showFullscreenCtrl:false, compass:false,
+    friction:.15, yaw:OVERVIEW.yaw, pitch:OVERVIEW.pitch, hfov:OVERVIEW.hfov,
+    minHfov:60, maxHfov:130, autoRotate:OVERVIEW.autoRotate,
+    hotSpots:hs, sceneFadeDuration:0
+  });
+  viewer.on("load",()=>{
+    const l=document.getElementById("loader");
+    if(!l.classList.contains("done")) setTimeout(()=>l.classList.add("done"),400);
+  });
+  updateSceneIndicator(null);
+  updateMinimap(null);
+  // show poi panel, hide detail
+  document.getElementById("detailPanel").classList.remove("visible");
+  if(!poiPanelOpen) togglePoiPanel();
+}
+
+function loadPOIScene(poi){
+  viewMode="poi"; activePOI=poi;
+  if(viewer){viewer.destroy();viewer=null}
+  viewer=pannellum.viewer("panorama",{
+    type:"equirectangular", panorama:poi.panorama, autoLoad:true,
+    showControls:false, showFullscreenCtrl:false, compass:false,
+    friction:.15, yaw:poi.pYaw||0, pitch:poi.pPitch||0, hfov:poi.pHfov||100,
+    minHfov:50, maxHfov:120, autoRotate:0.4,
+    hotSpots:[{
+      pitch:0, yaw:poi.pYaw+180, type:"custom",
+      createTooltipFunc:(el)=>{
+        el.className="marker";
+        el.innerHTML=`<div class="marker-pin cat-nature" style="background:rgba(255,255,255,.15);backdrop-filter:blur(8px)">↩</div><div class="marker-label">← Quay lại bản đồ</div>`;
+        el.onclick=e=>{e.stopPropagation();loadOverview()}
+      },
+      createTooltipArgs:{}
+    }],
+    sceneFadeDuration:0
+  });
+  updateSceneIndicator(poi);
+  updateMinimap(poi);
+}
+
+// ══════════ CATEGORIES ══════════
+function renderCategories(){
+  const el=document.getElementById("poiFilters");
+  const cats=CATEGORIES.filter(c=>c.id!=="all");
+  el.innerHTML=cats.map(c=>{
+    const count = POIS.filter(p=>p.cat===c.id).length;
+    const isActive = activeCats.has(c.id);
+    return `<button class="filter-chip ${isActive?'active':''}" data-cat="${c.id}" onclick="toggleCat('${c.id}')">
+      <span class="chip-check"><i data-lucide="check" class="chip-check-icon"></i></span>
+      <i data-lucide="${c.icon}" class="chip-icon"></i><span>${c.label}</span><span class="chip-count">${count}</span>
+    </button>`;
+  }).join("");
+  lucide.createIcons({root:el});
+}
+
+function toggleCat(catId){
+  if(activeCats.has(catId)){
+    activeCats.delete(catId);
+  } else {
+    activeCats.add(catId);
+  }
+  document.querySelectorAll(".filter-chip").forEach(b=>{
+    b.classList.toggle("active",activeCats.has(b.dataset.cat));
+  });
+  renderPOIList();
+  if(viewMode==="overview") loadOverview();
+}
+
+function getFilteredPOIs(){
+  if(activeCats.size===0) return POIS;
+  return POIS.filter(p=>activeCats.has(p.cat));
+}
+
+// ══════════ POI LIST ══════════
+function renderPOIList(){
+  const list=document.getElementById("poiList");
+  const pois=getFilteredPOIs();
+  const q=(document.getElementById("searchInput")?.value||"").toLowerCase();
+  const filtered=q?pois.filter(p=>p.name.toLowerCase().includes(q)||p.addr.toLowerCase().includes(q)):pois;
+  const cat=id=>CATEGORIES.find(c=>c.id===id);
+  list.innerHTML=filtered.map((p,i)=>{
+    const c=cat(p.cat);
+    return `<div class="poi-card ${activePOI?.id===p.id?'active':''}" onclick="openPOI(${p.id})">
+      <div class="poi-thumb">
+        <img src="${p.thumb}" alt="${p.name}" loading="lazy">
+      </div>
+      <div class="poi-card-info">
+        <div class="poi-card-name">${p.name}</div>
+        <div class="poi-card-addr">${p.addr}</div>
+        <div class="poi-card-tags">${p.tags.map(t=>`<span class="poi-tag">${t}</span>`).join("")}</div>
+      </div>
+      <div class="poi-card-arrow"><i data-lucide="chevron-right"></i></div>
+    </div>`;
+  }).join("")||'<div style="padding:20px;text-align:center;color:var(--text-mute);font-size:13px">Không tìm thấy kết quả</div>';
+  lucide.createIcons({root:document.getElementById("poiList")});
+}
+
+function filterPOIs(){renderPOIList()}
+
+// ══════════ OPEN POI ══════════
+function openPOI(id){
+  const poi=POIS.find(p=>p.id===id);
+  if(!poi) return;
+  activePOI=poi;
+
+  // Load 360 scene
+  loadPOIScene(poi);
+
+  // Render detail panel
+  const cat=CATEGORIES.find(c=>c.id===poi.cat);
+  const dp=document.getElementById("detailScroll");
+  dp.innerHTML=`
+    <div class="detail-back" onclick="backToOverview()">
+      <i data-lucide="chevron-left"></i> Quay lại bản đồ
+    </div>
+    <div class="detail-head">
+      <div class="detail-badge" style="background:${cat?.color||'#22D3A7'}20;color:${cat?.color||'#22D3A7'}">${cat?.label||poi.cat}</div>
+      <h1 class="detail-name">${poi.name}</h1>
+      <div class="detail-addr">
+        <i data-lucide="map-pin"></i>
+        ${poi.addr}
+      </div>
+    </div>
+    <div class="detail-divider"></div>
+    <div class="detail-body">
+      <p class="detail-desc">${poi.desc}</p>
+      <div class="detail-info-grid">
+        <div class="detail-info-item">
+          <i data-lucide="clock"></i>
+          ${poi.hours}
+        </div>
+        <div class="detail-info-item">
+          <i data-lucide="navigation"></i>
+          ${poi.distance}
+        </div>
+      </div>
+      <div style="margin-bottom:20px">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-mute);margin-bottom:10px">Tags</div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap">${poi.tags.map(t=>`<span class="poi-tag" style="background:${cat?.color||'#22D3A7'}15;color:${cat?.color||'#22D3A7'};border:1px solid ${cat?.color||'#22D3A7'}30">${t}</span>`).join("")}</div>
+      </div>
+      <div class="detail-cta">
+        <button class="btn-accent" onclick="window.open('https://www.google.com/maps?q=${poi.lat},${poi.lng}','_blank')">
+          Mở Google Maps
+        </button>
+        <button class="btn-outline" onclick="backToOverview()">
+          Quay lại
+        </button>
+      </div>
+    </div>`;
+  dp.scrollTop=0;
+  lucide.createIcons({root:dp});
+
+  // Show detail, hide poi list
+  const poiPanel=document.getElementById("poiPanel");
+  const detailPanelEl=document.getElementById("detailPanel");
+  poiPanel.classList.add("collapsed");
+  poiPanel.classList.remove("expanded","dragging");
+  poiPanel.style.transform="";
+  detailPanelEl.classList.add("visible");
+  detailPanelEl.classList.remove("expanded","dragging");
+  detailPanelEl.style.transform="";
+  panelExpanded=false;
+  poiPanelOpen=false;
+  renderPOIList();
+}
+
+function backToOverview(){
+  const detailPanelEl=document.getElementById("detailPanel");
+  const poiPanel=document.getElementById("poiPanel");
+  detailPanelEl.classList.remove("visible","expanded","dragging");
+  detailPanelEl.style.transform="";
+  activePOI=null;
+  poiPanelOpen=true;
+  poiPanel.classList.remove("collapsed","expanded","dragging");
+  poiPanel.style.transform="";
+  panelExpanded=false;
+  loadOverview();
+  renderPOIList();
+}
+
+// ══════════ MINIMAP ══════════
+function initMinimap(){
+  map=L.map("minimap",{
+    zoomControl:false, attributionControl:false,
+    doubleClickZoom:false
+  }).setView([10.40,107.15],9);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",{
+    maxZoom:18, subdomains:'abcd'
+  }).addTo(map);
+  POIS.forEach(p=>{
+    const cat=CATEGORIES.find(c=>c.id===p.cat);
+    const m=L.circleMarker([p.lat,p.lng],{
+      radius:6, fillColor:cat?.color||"#22D3A7", color:"#fff", weight:1.5, fillOpacity:1
+    }).addTo(map);
+    m.bindTooltip(p.name,{direction:'top',className:'map-tip'});
+    m.on("click",()=>openPOI(p.id));
+    markers.push({poi:p,marker:m});
+  });
+  // Double-click to expand/collapse
+  document.getElementById("minimapWrap").addEventListener("dblclick",e=>{
+    // don't trigger if clicking toolbar buttons
+    if(e.target.closest(".minimap-toolbar")||e.target.closest(".minimap-resize")||e.target.closest(".minimap-resize-br")) return;
+    toggleMapExpand();
+  });
+}
+
+function updateMinimap(poi){
+  if(!map) return;
+  if(poi){
+    map.setView([poi.lat,poi.lng],13,{animate:true});
+    markers.forEach(m=>{
+      m.marker.setStyle({
+        radius: m.poi.id===poi.id ? 8 : 4,
+        weight: m.poi.id===poi.id ? 2 : 1,
+        fillOpacity: m.poi.id===poi.id ? 1 : .5
+      });
+    });
+  } else {
+    map.setView([10.40,107.15],9,{animate:true});
+    markers.forEach(m=>m.marker.setStyle({radius:6,weight:1.5,fillOpacity:1}));
+  }
+}
+
+// ══════════ SCENE INDICATOR ══════════
+function updateSceneIndicator(poi){
+  const dot=document.getElementById("sceneDot");
+  const label=document.getElementById("sceneLabel");
+  if(poi){
+    const cat=CATEGORIES.find(c=>c.id===poi.cat);
+    dot.style.background=cat?.color||"var(--accent)";
+    label.innerHTML=`<strong>${poi.name}</strong> · ${poi.addr}`;
+  } else {
+    dot.style.background="var(--accent)";
+    label.innerHTML=`<strong>Tổng quan</strong> · Bà Rịa — Vũng Tàu`;
+  }
+}
+
+// ══════════ TOGGLES ══════════
+function togglePoiPanel(){
+  poiPanelOpen=!poiPanelOpen;
+  const panel=document.getElementById("poiPanel");
+  panel.classList.toggle("collapsed",!poiPanelOpen);
+  if(!poiPanelOpen){
+    panel.classList.remove("expanded","dragging");
+    panel.style.transform="";
+    panelExpanded=false;
+  }
+  document.getElementById("btnList").classList.toggle("active",poiPanelOpen);
+}
+function toggleMinimap(){
+  minimapVisible=!minimapVisible;
+  const wrap=document.getElementById("minimapWrap");
+  wrap.classList.toggle("hidden",!minimapVisible);
+  document.getElementById("btnMap").classList.toggle("active",minimapVisible);
+  if(minimapVisible&&map) setTimeout(()=>map.invalidateSize(),300);
+}
+
+let mapExpanded=false;
+
+function bindFrameDrag(){
+  const wrap=document.getElementById("minimapWrap");
+  const handle=document.getElementById("btnMapMove");
+  if(!handle) return;
+  let dragging=false, startX, startY, startLeft, startBottom;
+
+  function onStart(e){
+    e.preventDefault();
+    e.stopPropagation();
+    dragging=true;
+    const ev=e.touches?e.touches[0]:e;
+    startX=ev.clientX; startY=ev.clientY;
+    const rect=wrap.getBoundingClientRect();
+    startLeft=rect.left;
+    startBottom=window.innerHeight-rect.bottom;
+    wrap.classList.add("dragging");
+  }
+  function onMove(e){
+    if(!dragging) return;
+    e.preventDefault();
+    const ev=e.touches?e.touches[0]:e;
+    const dx=ev.clientX-startX;
+    const dy=ev.clientY-startY;
+    const newLeft=Math.max(0,Math.min(window.innerWidth-wrap.offsetWidth,startLeft+dx));
+    const newBottom=Math.max(0,Math.min(window.innerHeight-wrap.offsetHeight,startBottom-dy));
+    wrap.style.left=newLeft+"px";
+    wrap.style.bottom=newBottom+"px";
+    wrap.style.right="auto";
+    wrap.style.top="auto";
+  }
+  function onEnd(){
+    if(!dragging) return;
+    dragging=false;
+    wrap.classList.remove("dragging");
+  }
+
+  handle.addEventListener("mousedown",onStart);
+  handle.addEventListener("touchstart",onStart,{passive:false});
+  document.addEventListener("mousemove",onMove);
+  document.addEventListener("mouseup",onEnd);
+  document.addEventListener("touchmove",onMove,{passive:false});
+  document.addEventListener("touchend",onEnd);
+}
+
+function toggleMapExpand(){
+  mapExpanded=!mapExpanded;
+  const wrap=document.getElementById("minimapWrap");
+  const btn=document.getElementById("btnMapExpand");
+  // reset position to default corner so expanded fits viewport
+  wrap.style.left="14px";wrap.style.bottom="14px";wrap.style.right="auto";wrap.style.top="auto";
+  wrap.classList.toggle("expanded",mapExpanded);
+  btn.title=mapExpanded?"Thu nhỏ bản đồ":"Mở rộng bản đồ";
+  btn.innerHTML=mapExpanded
+    ?'<i data-lucide="minimize-2"></i>'
+    :'<i data-lucide="maximize-2"></i>';
+  lucide.createIcons({root:btn});
+  if(!mapExpanded){
+    wrap.style.left="";wrap.style.bottom="";wrap.style.right="";wrap.style.top="";
+  }
+  if(map) setTimeout(()=>map.invalidateSize(),400);
+}
+
+// ══════════ MINIMAP RESIZE ══════════
+function bindMinimapResize(){
+  const wrap=document.getElementById("minimapWrap");
+  const handleNE=document.getElementById("minimapResize");
+  const handleBR=document.getElementById("minimapResizeBR");
+  if(!wrap) return;
+
+  function setupHandle(handle, corner){
+    if(!handle) return;
+    let dragging=false, startX, startY, startW, startH, startBottom;
+
+    function onStart(e){
+      e.preventDefault();
+      e.stopPropagation();
+      dragging=true;
+      const ev=e.touches?e.touches[0]:e;
+      startX=ev.clientX; startY=ev.clientY;
+      startW=wrap.offsetWidth; startH=wrap.offsetHeight;
+      startBottom=parseInt(wrap.style.bottom)||14;
+      wrap.classList.add("resizing");
+      document.addEventListener("mousemove",onMove);
+      document.addEventListener("mouseup",onEnd);
+      document.addEventListener("touchmove",onMove,{passive:false});
+      document.addEventListener("touchend",onEnd);
+    }
+
+    function onMove(e){
+      if(!dragging) return;
+      e.preventDefault();
+      const ev=e.touches?e.touches[0]:e;
+      const dx=ev.clientX-startX;
+      const rect=wrap.getBoundingClientRect();
+      const maxW=window.innerWidth-rect.left-8;
+
+      if(corner==="ne"){
+        // Top-right: drag up = taller
+        const dy=startY-ev.clientY;
+        const maxH=rect.bottom-8;
+        const newW=Math.max(140,Math.min(maxW,startW+dx));
+        const newH=Math.max(100,Math.min(maxH,startH+dy));
+        wrap.style.width=newW+"px";
+        wrap.style.height=newH+"px";
+      } else {
+        // Bottom-right: drag down = taller, shift bottom
+        const dy=ev.clientY-startY;
+        const maxH=window.innerHeight-rect.top-8;
+        const newW=Math.max(140,Math.min(maxW,startW+dx));
+        const newH=Math.max(100,Math.min(maxH,startH+dy));
+        wrap.style.width=newW+"px";
+        wrap.style.height=newH+"px";
+        wrap.style.bottom=Math.max(0,startBottom-dy)+"px";
+      }
+      if(map) map.invalidateSize();
+    }
+
+    function onEnd(){
+      dragging=false;
+      wrap.classList.remove("resizing");
+      document.removeEventListener("mousemove",onMove);
+      document.removeEventListener("mouseup",onEnd);
+      document.removeEventListener("touchmove",onMove);
+      document.removeEventListener("touchend",onEnd);
+      if(map) map.invalidateSize();
+    }
+
+    handle.addEventListener("mousedown",onStart);
+    handle.addEventListener("touchstart",onStart,{passive:false});
+  }
+
+  setupHandle(handleNE, "ne");
+  setupHandle(handleBR, "br");
+}
+
+// ══════════ SMART UI (hide on 360 interaction) ══════════
+let uiHidden=false, idleTimer=null, isInteracting=false;
+
+function bindSmartUI(){
+  const el=document.getElementById("panorama");
+  if(!el) return;
+  const onStart=()=>{
+    isInteracting=true;
+    clearTimeout(idleTimer);
+    fadeOutUI();
+  };
+  const onEnd=()=>{
+    isInteracting=false;
+    resetIdleTimer();
+  };
+  el.addEventListener("mousedown",onStart);
+  el.addEventListener("touchstart",onStart,{passive:true});
+  el.addEventListener("mouseup",onEnd);
+  el.addEventListener("touchend",onEnd);
+}
+
+function fadeOutUI(){
+  if(uiHidden) return;
+  uiHidden=true;
+  document.getElementById("ui").classList.add("hidden");
+}
+
+function fadeInUI(){
+  if(!uiHidden) return;
+  uiHidden=false;
+  document.getElementById("ui").classList.remove("hidden");
+}
+
+function resetIdleTimer(){
+  clearTimeout(idleTimer);
+  idleTimer=setTimeout(()=>{
+    if(!isInteracting) fadeInUI();
+  },4000);
+}
+
+function showAllUI(){
+  fadeInUI();
+  resetIdleTimer();
+}
+
+// ══════════ MOBILE PANEL DRAG (bottom sheet swipe) ══════════
+let panelExpanded=false;
+
+function bindMobilePanelDrag(panelEl){
+  if(!panelEl||panelEl._dragBound) return;
+  panelEl._dragBound=true;
+
+  let startY=0, startTranslate=0, currentY=0, isDragging=false, dragSource="";
+
+  function getPanelHeight(){ return panelEl.offsetHeight||400 }
+  function getCollapsedTranslate(){ return getPanelHeight()-160 }
+  function clamp(v,min,max){ return Math.max(min,Math.min(max,v)) }
+
+  function getCurrentTranslateY(el){
+    const st=window.getComputedStyle(el);
+    const m=st.transform||st.webkitTransform;
+    if(!m||m==="none") return 0;
+    const vals=m.match(/matrix.*\((.+)\)/);
+    if(vals){const v=vals[1].split(",");return parseFloat(v[v.length-1])}
+    return 0;
+  }
+
+  function onDragStart(e){
+    if(window.innerWidth>860) return;
+    const clientY=e.type.startsWith("touch")?e.touches[0].clientY:e.clientY;
+    const fromDragBar=!!e.target.closest(".panel-drag");
+    const scroll=panelEl.querySelector(".poi-list,.detail-scroll");
+    const scrollAtTop=!scroll||scroll.scrollTop<=0;
+    if(!fromDragBar&&!scrollAtTop) return;
+    dragSource=fromDragBar?"bar":"panel";
+    isDragging=true;
+    startY=clientY;
+    startTranslate=getCurrentTranslateY(panelEl);
+    currentY=startTranslate;
+    panelEl.style.transform="translateY("+startTranslate+"px)";
+    panelEl.classList.remove("expanded");
+    panelEl.classList.add("dragging");
+    document.addEventListener("mousemove",onDragMove,{passive:false});
+    document.addEventListener("mouseup",onDragEnd);
+    document.addEventListener("touchmove",onDragMove,{passive:false});
+    document.addEventListener("touchend",onDragEnd);
+  }
+
+  function onDragMove(e){
+    if(!isDragging) return;
+    const clientY=e.type.startsWith("touch")?e.touches[0].clientY:e.clientY;
+    const delta=clientY-startY;
+    if(dragSource==="panel"){
+      if(Math.abs(delta)<15) return;
+      if(delta<0&&startTranslate<=0){cancelDrag();return}
+      isDragging=false;
+      removeListeners();
+      const maxT=getCollapsedTranslate();
+      const shouldExpand=delta<0;
+      const targetY=shouldExpand?0:maxT;
+      panelEl.classList.remove("dragging");
+      requestAnimationFrame(()=>{
+        panelEl.style.transition="transform .35s cubic-bezier(.16,1,.3,1)";
+        panelEl.style.transform="translateY("+targetY+"px)";
+        let settled=false;
+        const onDone=()=>{
+          if(settled) return; settled=true;
+          panelEl.removeEventListener("transitionend",onDone);
+          panelEl.style.transition=""; panelEl.style.transform="";
+          if(shouldExpand){panelExpanded=true;panelEl.classList.add("expanded")}
+          else{panelExpanded=false;panelEl.classList.remove("expanded")}
+        };
+        panelEl.addEventListener("transitionend",onDone);
+        setTimeout(onDone,400);
+      });
+      return;
+    }
+    e.preventDefault();
+    const maxT=getCollapsedTranslate();
+    currentY=clamp(startTranslate+delta,0,maxT);
+    panelEl.style.transform="translateY("+currentY+"px)";
+  }
+
+  function cancelDrag(){
+    isDragging=false;
+    panelEl.classList.remove("dragging");
+    panelEl.style.transform="";
+    if(startTranslate<=0){panelExpanded=true;panelEl.classList.add("expanded")}
+    removeListeners();
+  }
+
+  function onDragEnd(){
+    if(!isDragging) return;
+    isDragging=false;
+    removeListeners();
+    const maxT=getCollapsedTranslate();
+    const dragDelta=currentY-startTranslate;
+    const shouldExpand=dragDelta<-20;
+    const shouldCollapse=dragDelta>20;
+    const targetY=shouldExpand?0:shouldCollapse?maxT:(startTranslate<=0?0:maxT);
+    panelEl.classList.remove("dragging");
+    requestAnimationFrame(()=>{
+      panelEl.style.transition="transform .35s cubic-bezier(.16,1,.3,1)";
+      panelEl.style.transform="translateY("+targetY+"px)";
+      let settled=false;
+      const onDone=()=>{
+        if(settled) return; settled=true;
+        panelEl.removeEventListener("transitionend",onDone);
+        panelEl.style.transition=""; panelEl.style.transform="";
+        if(shouldExpand){panelExpanded=true;panelEl.classList.add("expanded")}
+        else{panelExpanded=false;panelEl.classList.remove("expanded")}
+      };
+      panelEl.addEventListener("transitionend",onDone);
+      setTimeout(onDone,400);
+    });
+  }
+
+  function removeListeners(){
+    document.removeEventListener("mousemove",onDragMove);
+    document.removeEventListener("mouseup",onDragEnd);
+    document.removeEventListener("touchmove",onDragMove);
+    document.removeEventListener("touchend",onDragEnd);
+  }
+
+  panelEl.addEventListener("mousedown",onDragStart);
+  panelEl.addEventListener("touchstart",onDragStart,{passive:true});
+}
+
+// ══════════ START ══════════
+document.addEventListener("DOMContentLoaded",()=>{
+  lucide.createIcons();
+  init();
+  bindSmartUI();
+  bindMinimapResize();
+  bindFrameDrag();
+  bindMobilePanelDrag(document.getElementById("poiPanel"));
+  bindMobilePanelDrag(document.getElementById("detailPanel"));
+});
+</script>
+</body>
+</html>

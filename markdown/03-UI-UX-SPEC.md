@@ -1,9 +1,25 @@
 # 03 — UI/UX DESIGN SPECIFICATION
 ## Website 360 Thế Hệ Mới — Hotel CMS Platform
 
-**Version:** 1.0  
+**Version:** 1.2  
 **Date:** 2026-03-10  
-**Related:** 01-SYSTEM-ARCHITECTURE.md, 02-DATABASE-API-SPEC.md
+**Updated:** Thêm sequence diagrams (Room Page UX, Booking, Panel Interaction), chuẩn hóa bố cục  
+**Related:** 01-SYSTEM-ARCHITECTURE · 02-DATABASE-API-SPEC · 04-TECHNICAL-IMPLEMENTATION
+
+---
+
+## Mục Lục
+
+1. [Design Principles](#1-design-principles)
+2. [Design Tokens](#12-design-tokens)
+3. [Layout Architecture](#2-layout-architecture)
+4. [Component Specifications](#3-component-specifications)
+5. [Page-by-Page UX Flows](#4-page-by-page-ux-flows)
+6. [Responsive Breakpoints](#5-responsive-breakpoints)
+7. [Animation & Transition Spec](#6-animation--transition-spec)
+8. [Sequence Diagrams](#sequence-diagrams)
+9. [Accessibility (WCAG 2.1 AA)](#7-accessibility-wcag-21-aa)
+10. [Iconography](#8-iconography)
 
 ---
 
@@ -24,64 +40,26 @@
 
 ```css
 :root {
-  /* Colors - Luxury Dark Theme cho 360 pages */
-  --color-primary:      #1B2D4F;     /* Deep navy */
-  --color-accent:       #C8A96E;     /* Gold accent */
-  --color-accent-hover: #D4BA85;
-  --color-bg-dark:      #0D1117;
-  --color-bg-overlay:   rgba(13, 17, 23, 0.75);
-  --color-bg-panel:     rgba(27, 45, 79, 0.85);
-  --color-bg-card:      rgba(255, 255, 255, 0.08);
-  --color-text-primary: #FFFFFF;
-  --color-text-secondary: rgba(255, 255, 255, 0.7);
-  --color-text-muted:   rgba(255, 255, 255, 0.45);
-  --color-border:       rgba(200, 169, 110, 0.2);
-  --color-border-active: rgba(200, 169, 110, 0.5);
-
-  /* Colors - Light Theme cho CMS pages (News, Contact...) */
-  --color-light-bg:     #FAFAF8;
-  --color-light-text:   #1B2D4F;
-  --color-light-muted:  #6B7280;
-  --color-light-border: #E5E7EB;
+  /* Colors - Luxury Dark Theme (demo implementation) */
+  --gold: #C9A861;                          /* Primary accent */
+  --gold-soft: rgba(201,168,97,.12);        /* Subtle gold bg */
+  --gold-mid: rgba(201,168,97,.3);          /* Medium gold */
+  --gold-glow: rgba(201,168,97,.45);        /* Glow/shadow */
+  --dark: #060a10;                          /* Background */
+  --panel: rgba(8,14,26,.82);               /* Panel bg (glass) */
+  --panel-solid: rgba(12,20,38,.94);        /* Solid panel (info cards) */
+  --glass: rgba(255,255,255,.05);           /* Glass morphism */
+  --glass-border: rgba(255,255,255,.08);    /* Subtle borders */
+  --text: #fff;                             /* Primary text */
+  --text-dim: rgba(255,255,255,.6);         /* Secondary text */
+  --text-mute: rgba(255,255,255,.35);       /* Muted text */
 
   /* Typography */
-  --font-display:   'Playfair Display', Georgia, serif;
-  --font-body:      'DM Sans', 'Segoe UI', sans-serif;
-  --font-mono:      'JetBrains Mono', monospace;
-
-  /* Spacing Scale (8px base) */
-  --space-1: 4px;   --space-2: 8px;   --space-3: 12px;
-  --space-4: 16px;  --space-5: 20px;  --space-6: 24px;
-  --space-8: 32px;  --space-10: 40px; --space-12: 48px;
-  --space-16: 64px; --space-20: 80px;
-
-  /* Border Radius */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-full: 9999px;
-
-  /* Shadows */
-  --shadow-soft:  0 4px 24px rgba(0,0,0,0.15);
-  --shadow-card:  0 8px 32px rgba(0,0,0,0.25);
-  --shadow-modal: 0 16px 64px rgba(0,0,0,0.4);
+  --serif: 'Cormorant Garamond', Georgia, serif;  /* Display headings */
+  --sans: 'Outfit', system-ui, sans-serif;         /* Body text */
 
   /* Transitions */
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --duration-fast: 200ms;
-  --duration-normal: 350ms;
-  --duration-slow: 600ms;
-
-  /* Z-Index Scale */
-  --z-panorama:   0;
-  --z-hotspot:    10;
-  --z-overlay:    20;
-  --z-panel:      30;
-  --z-nav:        40;
-  --z-cta:        50;
-  --z-modal:      60;
-  --z-toast:      70;
+  --ease: cubic-bezier(.16,1,.3,1);         /* Expo ease-out */
 }
 ```
 
@@ -167,10 +145,19 @@
 │ Items: white text                                            │
 │ Sticky on scroll                                             │
 ├─────────────────────────────────────────────────────────────┤
-│ State: MOBILE (< 768px)                                      │
-│ Hamburger menu → Full-screen overlay                         │
-│ Menu items: stacked, animated stagger in                     │
-│ Language selector visible                                    │
+│ State: MOBILE (< 860px)                                      │
+│ Hamburger menu → Full-screen overlay (z:200)                 │
+│ Overlay: 3-section layout (header / body / footer)           │
+│ Background: rgba(6,10,16,0.97) + blur(50px)                  │
+│ Header: logo (white) + close button (circle, glass bg)       │
+│ Body: numbered nav links (serif 32px) + stagger animation    │
+│   "01 Home →", "02 Rooms →", etc.                            │
+│   Active + hover: gold color, arrow slides in                │
+│   Stagger delay: 80ms + i*60ms per link                      │
+│ CTA: "Book Now" gold pill, delay 400ms                       │
+│ Footer: contact (phone, email, address) + social icons       │
+│   Facebook, Instagram, YouTube (circle glass buttons)        │
+│   Footer delay 200ms, translateY(10px→0)                     │
 │ Booking CTA prominent                                        │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -258,11 +245,33 @@ STATES:
 - Hidden: khi user đang tương tác 360 (fade out 300ms)
 - Re-appear: sau 4s idle (fade in 500ms)
 
-MOBILE (< 768px):
+MOBILE (< 860px):
 Position: bottom sheet (drag up/down)
-Height: collapsed = 120px (tên + price + CTA)
-         expanded = 70vh (full info)
-Drag handle ở top center
+Height: collapsed = 160px (badge + title + subtitle visible)
+         expanded = max 90vh (full info, scrollable)
+Border-radius: 18px 18px 0 0
+Drag handle: 36×4px bar, top center, gold when dragging
+Full-width (left:0, right:0, bottom:0)
+
+DRAG SYSTEM (2 sources):
+1. Drag-bar: free drag, direction-based snap (20px threshold)
+   - Kéo lên ≥20px → expand
+   - Kéo xuống ≥20px → collapse
+   - Kéo <20px → giữ state cũ
+2. Panel body: auto-snap with 15px gesture detection
+   - Vuốt xuống 15px → collapse (no free drag)
+   - Vuốt lên 15px khi collapsed → expand
+   - Vuốt lên khi already expanded → cancel, allow scroll
+
+Animation: requestAnimationFrame pattern
+  - Remove .dragging (transition:none) 
+  - rAF → set inline transition + target transform
+  - transitionend → clean up, set class
+
+Sibling hiding:
+  - .expanded ~ .scene-nav → opacity:0, pointer-events:none
+  - .expanded ~ .location-pill → opacity:0, pointer-events:none
+  - Same for .dragging state
 ```
 
 ### 3.3 SceneNavigator (Bottom Thumbnail Bar)
@@ -548,42 +557,100 @@ Layout B
 | Breakpoint | Width | Layout Changes |
 |-----------|-------|---------------|
 | Mobile S | < 375px | Compact spacing, stack all |
-| Mobile | 375–767px | Bottom sheet InfoPanel, swipe scenes |
-| Tablet | 768–1023px | Side panel narrower (280px), 2-col grids |
-| Desktop | 1024–1439px | Full side panel (360px), comfortable spacing |
-| Desktop L | ≥ 1440px | Max-width container (1400px), larger panels |
+| Mobile | 375–860px | Bottom sheet InfoPanel, swipe scenes, hamburger menu |
+| Desktop S | 860–1100px | Side panel narrower (340px), right:16px |
+| Desktop | 1100–1439px | Full side panel (380px), comfortable spacing |
+| Desktop L | ≥ 1440px | Max-width container, larger panels |
 
 ### 5.1 Mobile-Specific Patterns
 
 ```
-BOTTOM SHEET (InfoPanel on mobile):
+BOTTOM SHEET (InfoPanel on mobile ≤860px):
 ┌──────────────────────────────┐
-│         ═══  (drag handle)    │  ← 40px tap target
+│         ═══  (drag handle)    │  ← 36×4px, gold khi dragging
 │                                │
-│ Deluxe Twin Room · Ocean View │
-│ From 2,500,000 VND            │
-│ [Book Now]  [Check Rate]      │
-│                                │  ← Collapsed: 120px
+│ ★ DELUXE TWIN ROOM            │  ← badge + title
+│ Ocean View                     │  ← subtitle
+│ From 2,500,000 VND             │
+│ [Book Now]  [Check Rate]       │
+│                                │  ← Collapsed: 160px visible
 ├── ─ ─ ─ (swipe up) ─ ─ ─ ─ ─┤
 │                                │
 │ Mô tả phòng...                │
+│                                │
+│ 35m²  ·  2 Adults  ·  Twin    │  ← meta row with icons
 │                                │
 │ Amenities:                     │
 │ ☐ Ocean ☐ Balcony ☐ WiFi     │
 │ ☐ AC    ☐ Bathtub ☐ Minibar  │
 │                                │
-│ Gallery: [thumb] [thumb] ...   │
-│                                │  ← Expanded: 70vh
+│ [Book Now] [Check Avail]       │
+│ [← Xem phòng khác]            │
+│                                │  ← Expanded: max-height 90vh
 └──────────────────────────────┘
 
+CSS States:
+  .content-panel (collapsed): transform:translateY(calc(100% - 160px))
+  .content-panel.expanded:    transform:translateY(0)
+  .content-panel.dragging:    transition:none!important (follow finger)
+  .content-panel.slide-out:   transform:translateY(100%); opacity:0
+
+DRAG SYSTEM (2 dragSources):
+
+1. Drag-bar ("bar"):
+   - Trigger: mousedown/touchstart on .panel-drag
+   - Behavior: free-follow finger movement
+   - Snap: DIRECTION-BASED (20px threshold)
+     · currentY - startTranslate < -20 → expand (translateY=0)
+     · currentY - startTranslate > 20 → collapse
+     · |delta| < 20 → restore previous state
+   - Clamped between 0 and collapsedTranslate
+
+2. Panel body ("panel"):
+   - Trigger: mousedown/touchstart on .panel-scroll (when scrollTop=0)
+   - Behavior: AUTO-SNAP (15px gesture detection, NO free drag)
+     · |delta| < 15 → do nothing (wait for more movement)
+     · delta < -15 (swipe up):
+       - If already expanded (startTranslate≤0): cancelDrag(), allow scroll
+       - Else: snap expand
+     · delta > 15 (swipe down): snap collapse
+   - Does not follow finger — detects direction then snaps immediately
+
+Animation pattern (both sources):
+  1. panel.classList.remove("dragging")   // re-enable transitions
+  2. requestAnimationFrame(() => {
+       panel.style.transition = "transform .35s cubic-bezier(.16,1,.3,1)"
+       panel.style.transform = "translateY(" + targetY + "px)"
+       // settled guard flag prevents double-fire
+       panel.addEventListener("transitionend", onDone)
+       setTimeout(onDone, 400)  // fallback
+     })
+  3. onDone: remove inline styles, toggle .expanded class
+
+Anti-flash on drag start (from expanded state):
+  1. getCurrentTranslateY() via getComputedStyle → matrix parse
+  2. Set inline transform BEFORE removing .expanded class
+  3. Then remove .expanded, add .dragging
+  → No visual jump when switching from class-based to inline transform
+
+Event binding: MutationObserver on document.body
+  → auto-bind mousedown/touchstart when panel appears in DOM
+  → _dragBound flag prevents duplicate binding
+
+Sibling element hiding during drag/expand:
+  .content-panel.expanded ~ .scene-nav { opacity:0; pointer-events:none }
+  .content-panel.expanded ~ .location-pill { opacity:0; pointer-events:none }
+  .content-panel.dragging ~ .scene-nav { opacity:0; pointer-events:none }
+  .content-panel.dragging ~ .location-pill { opacity:0; pointer-events:none }
+
 GESTURE MAP:
-- Tap panorama: toggle UI visibility
-- Drag panorama: rotate 360 view
-- Pinch: zoom in/out
-- Swipe up on bottom sheet: expand info
-- Swipe down on bottom sheet: collapse
+- Drag panorama: rotate 360 view, triggers Smart UI hide
+- Pinch: zoom in/out (Pannellum built-in)
+- Drag-bar swipe: free drag + direction-based snap (20px)
+- Panel body swipe (at scroll top): auto-snap (15px detection)
 - Tap hotspot: show info card
-- Double-tap hotspot: navigate (if navigate type)
+- Click nav hotspot: navigate to target scene
+- Hamburger: open mobile menu overlay
 ```
 
 ---
@@ -602,15 +669,23 @@ GESTURE MAP:
 
 | Component | Animation | Trigger |
 |-----------|-----------|--------|
-| InfoPanel | slideInFromLeft / fadeOut | Page load / user interaction |
+| InfoPanel (desktop) | slideInFromRight / fadeOut | Page load / user interaction |
+| InfoPanel slide-out | translateX(30px) + opacity→0 | Scene transition |
 | SceneNavigator | slideUpFromBottom | Page load (delay 500ms) |
-| Hotspots | fadeIn + pulse | Panorama loaded |
-| InfoCard (hotspot) | scaleIn from hotspot origin | Hotspot click |
+| Hotspots | fadeIn + pulse (3s loop) | Panorama loaded |
+| InfoCard (hotspot) | scaleIn from click origin | Hotspot click |
 | GalleryOverlay | fadeIn + scaleFrom(0.9) | Gallery button click |
 | BookingWidget expand | expandUp + fadeIn children | CTA click |
-| Navbar hide/show | translateY(-100%) / translateY(0) | Scroll / idle |
-| Bottom Sheet (mobile) | spring physics (swipe gesture) | Swipe up/down |
-| Room Card hover | image slight zoom + shadow deepen | Mouse enter |
+| UI Layer hide/show | opacity .4s ease | Smart UI interaction/idle |
+| Bottom Sheet drag | transform follow finger (no transition) | Touch/mouse drag |
+| Bottom Sheet snap | transform .35s cubic-bezier(.16,1,.3,1) | Drag end via rAF |
+| Panel drag-bar | width 36→48px, color→gold | Dragging state |
+| Mobile Menu overlay | opacity .4s | Hamburger toggle |
+| Mobile Menu links | translateX(-20→0) + opacity, stagger 80+i*60ms | Menu open |
+| Mobile Menu CTA | translateX(-20→0) + opacity, delay 400ms | Menu open |
+| Mobile Menu footer | translateY(10→0) + opacity, delay 200ms | Menu open |
+| Mobile Menu arrow | opacity 0→1, translateX(-8→0) | Link hover |
+| Loader | opacity→0, visibility→hidden (.8s) | Panorama loaded |
 
 ### 6.3 Loading States
 
@@ -625,6 +700,209 @@ PAGE SKELETON:
 - InfoPanel: shimmer placeholder blocks
 - SceneNavigator: shimmer thumbnail shapes
 - Text: shimmer lines
+```
+
+---
+
+## Sequence Diagrams
+
+### SD-1. Room Detail Page — User Journey
+
+```
+  Visitor            Browser/Next.js      Pannellum          InfoPanel          SceneNav
+   │                     │                │                  │                  │
+   │  visit /rooms/      │                │                  │                  │
+   │  deluxe-ocean       │                │                  │                  │
+   ├────────────────────►│                │                  │                  │
+   │                     │ SSR render     │                  │                  │
+   │                     │ (SEO meta,     │                  │                  │
+   │                     │  room data,    │                  │                  │
+   │                     │  JSON-LD)      │                  │                  │
+   │ ◄─── HTML + hydrate ┤                │                  │                  │
+   │                     │                │                  │                  │
+   │                     │ init viewer    │                  │                  │
+   │                     ├───────────────►│                  │                  │
+   │                     │                │ load panorama    │                  │
+   │                     │                │ render hotspots  │                  │
+   │                     │                │                  │                  │
+   │                     │ mount panel    │                  │                  │
+   │                     ├──────────────────────────────────►│                  │
+   │                     │                │                  │ room name/badge  │
+   │                     │                │                  │ description      │
+   │                     │                │                  │ amenities grid   │
+   │                     │                │                  │ price + CTA      │
+   │                     │                │                  │ slideInFromRight │
+   │                     │                │                  │                  │
+   │                     │ mount scene nav│                  │                  │
+   │                     ├─────────────────────────────────────────────────────►│
+   │                     │                │                  │                  │ [Bedroom]
+   │                     │                │                  │                  │ [Balcony]
+   │  ◄──────────────────── page ready ───┤                  │                  │
+   │                     │                │                  │                  │
+   │  drag panorama      │                │                  │                  │
+   ├──────────────────────────────────────►                  │                  │
+   │                     │                │ rotate view      │                  │
+   │                     │ SmartUI ─ hide │                  │                  │
+   │                     ├──────────────────────────────────►│ fade out 300ms   │
+   │                     ├─────────────────────────────────────────────────────►│ fade out
+   │                     │                │                  │                  │
+   │  stop + idle 4s     │                │                  │                  │
+   │                     │ SmartUI ─ show │                  │                  │
+   │                     ├──────────────────────────────────►│ fade in 500ms    │
+   │                     ├─────────────────────────────────────────────────────►│ fade in
+   │                     │                │                  │                  │
+   │  click hotspot      │                │                  │                  │
+   │  "Ban công →"       │                │                  │                  │
+   ├──────────────────────────────────────►                  │                  │
+   │                     │                │ scene change     │                  │
+   │                     │                │ fade → balcony   │                  │
+   │                     │                │                  │                  │
+   │                     │ update panel   │                  │                  │
+   │                     ├──────────────────────────────────►│ keep room info   │
+   │                     ├─────────────────────────────────────────────────────►│ highlight
+   │                     │                │                  │                  │ [Balcony]
+   │                     │                │                  │                  │
+   │  click "Book Now"   │                │                  │                  │
+   ├────────────────────────────────────────────────────────►│                  │
+   │                     │                │                  │ track analytics  │
+   │                     │                │                  │ open booking URL │
+   │  ◄─────────────────── redirect to booking engine ───────┤                  │
+```
+
+### SD-2. Mobile Bottom Sheet — Complete Gesture Flow
+
+```
+  User Touch       ScrollTop Check     Drag System         Panel Animation    Sibling UI
+   │                     │                │                  │                  │
+   │  touch .panel-drag  │                │                  │                  │
+   ├──────────────────────────────────────►                  │                  │
+   │                     │                │ source = "bar"   │                  │
+   │                     │                │ free-follow mode │                  │
+   │                     │                │                  │                  │
+   │  move finger        │                │                  │                  │
+   ├──────────────────────────────────────►                  │                  │
+   │                     │                │ set transform ──►│ follow finger    │
+   │                     │                │                  │                  │
+   │                     │                │ hide siblings ─────────────────────►│
+   │                     │                │                  │                  │ .scene-nav
+   │                     │                │                  │                  │ .location-pill
+   │                     │                │                  │                  │ opacity → 0
+   │  release            │                │                  │                  │
+   ├──────────────────────────────────────►                  │                  │
+   │                     │                │ direction snap   │                  │
+   │                     │                │ (20px threshold) │                  │
+   │                     │                │ rAF → animate ──►│ .35s ease-out    │
+   │                     │                │                  │                  │
+   │                     │                │ show/hide siblings ────────────────►│
+   │                     │                │                  │                  │ based on
+   │                     │                │                  │                  │ expand/
+   │◄───────────────────── settled ───────┤                  │                  │ collapse
+   │                     │                │                  │                  │
+   ═══════════════════════════════════════════════════════════════════════════════
+   │                     │                │                  │                  │
+   │  touch .panel-scroll│                │                  │                  │
+   ├────────────────────►│                │                  │                  │
+   │                     │ scrollTop = 0? │                  │                  │
+   │                     │ YES ──────────►│ source = "panel" │                  │
+   │                     │                │ auto-snap mode   │                  │
+   │                     │                │                  │                  │
+   │  swipe up 15px+     │                │                  │                  │
+   ├──────────────────────────────────────►                  │                  │
+   │                     │                │ if collapsed:    │                  │
+   │                     │                │ → EXPAND ───────►│ snap to top      │
+   │                     │                │                  │                  │
+   │                     │                │ if expanded:     │                  │
+   │                     │                │ → cancelDrag()   │                  │
+   │                     │                │   let scroll ───►│ normal scroll    │
+   │                     │                │                  │                  │
+   │  swipe down 15px+   │                │                  │                  │
+   ├──────────────────────────────────────►                  │                  │
+   │                     │                │ → COLLAPSE ─────►│ snap to bottom   │
+   │◄───────────────────── settled ───────┤                  │                  │
+```
+
+### SD-3. Booking Widget Interaction
+
+```
+  Visitor            InfoPanel            BookingWidget       Booking Engine    Analytics
+   │                     │                │                  │                  │
+   │  view room info     │                │                  │                  │
+   ├────────────────────►│                │                  │                  │
+   │                     │ show price:    │                  │                  │
+   │                     │ "From X VND"   │                  │                  │
+   │                     │ [Book Now]     │                  │                  │
+   │                     │ [Check Rate]   │                  │                  │
+   │                     │                │                  │                  │
+   │  click "Book Now"   │                │                  │                  │
+   ├────────────────────►│                │                  │                  │
+   │                     │ track event ─────────────────────────────────────────►
+   │                     │                │                  │                  │ booking_click
+   │                     │                │                  │                  │ room: slug
+   │                     │                │                  │                  │ source: panel
+   │                     │                │                  │                  │
+   │                     │  ─── Option A: Direct redirect ──────────────────────│
+   │                     │                │                  │                  │
+   │                     │ window.open() ────────────────────►                  │
+   │  ◄──────────────────── new tab: booking engine ─────────┤                  │
+   │                     │                │                  │                  │
+   │                     │  ─── Option B: Inline widget expand ─────────────────│
+   │                     │                │                  │                  │
+   │  click "Check Rate" │                │                  │                  │
+   ├────────────────────►│                │                  │                  │
+   │                     │ expand widget  │                  │                  │
+   │                     ├───────────────►│                  │                  │
+   │                     │                │ expandUp anim    │                  │
+   │                     │                │ fadeIn children  │                  │
+   │                     │                │ show:            │                  │
+   │                     │                │  📅 date picker  │                  │
+   │                     │                │  👤 guest count  │                  │
+   │                     │                │  [Submit]        │                  │
+   │                     │                │                  │                  │
+   │  fill form & submit │                │                  │                  │
+   ├──────────────────────────────────────►                  │                  │
+   │                     │                │ validate         │                  │
+   │                     │                │ redirect ────────►                  │
+   │  ◄──────────────────── booking engine with params ──────┤                  │
+```
+
+### SD-4. Scene Transition Animation Timeline
+
+```
+  User Action        Panel              Pannellum          Hotspots           SceneNav
+   │                     │                │                  │                  │
+   │  click scene or     │                │                  │                  │
+   │  navigate hotspot   │                │                  │                  │
+   │                     │                │                  │                  │
+   │  t=0ms              │                │                  │                  │
+   │                     │ slide-out      │                  │                  │
+   │                     │ translateX(30) │                  │                  │
+   │                     │ opacity → 0    │                  │                  │
+   │                     │ (500ms)        │                  │                  │
+   │                     │                │                  │                  │
+   │  t=300ms            │                │                  │                  │
+   │                     │                │ fade to black    │                  │
+   │                     │                │ (300ms)          │                  │
+   │                     │                │                  │ remove all       │
+   │                     │                │                  │                  │
+   │  t=500ms            │                │                  │                  │
+   │                     │                │ load new scene   │                  │
+   │                     │                │ fade in (500ms)  │                  │
+   │                     │                │                  │                  │
+   │  t=700ms            │                │                  │                  │
+   │                     │ slide-in       │                  │                  │
+   │                     │ translateX(0)  │                  │                  │
+   │                     │ opacity → 1    │                  │                  │
+   │                     │ (500ms)        │                  │                  │
+   │                     │                │                  │                  │
+   │  t=1000ms           │                │                  │                  │
+   │                     │                │                  │ fadeIn + pulse   │
+   │                     │                │                  │ stagger 100ms ea │
+   │                     │                │                  │                  │
+   │                     │                │                  │                  ├── update
+   │                     │                │                  │                  │   active
+   │                     │                │                  │                  │   thumbnail
+   │  t=1200ms           │                │                  │                  │
+   │  ◄──────────────────── transition complete ─────────────────────────────   │
 ```
 
 ---

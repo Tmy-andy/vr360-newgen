@@ -1,11 +1,26 @@
 # 01 — SYSTEM ARCHITECTURE SPECIFICATION
 ## Website 360 Thế Hệ Mới — Hotel CMS Platform
 
-**Version:** 1.0  
+**Version:** 1.2  
 **Date:** 2026-03-10  
 **Status:** Draft  
+**Updated:** Thêm sequence diagrams (Visitor Flow, Admin Update, CDN Cache), chuẩn hóa bố cục  
 **Project:** Website 360 New Generation — Luxury Hotel CMS  
 **Sample Site:** Boton Blue Hotel & Spa (hotel.botonblue.com)
+
+---
+
+## Mục Lục
+
+1. [Tổng Quan Kiến Trúc](#1-tổng-quan-kiến-trúc)
+2. [Chi Tiết Từng Lớp](#2-chi-tiết-từng-lớp)
+3. [Tech Stack](#3-tech-stack)
+4. [Luồng Dữ Liệu Chính](#4-luồng-dữ-liệu-chính)
+5. [Sequence Diagrams](#5-sequence-diagrams)
+6. [Chiến Lược SEO / AIEO](#6-chiến-lược-seo--aieo)
+7. [Deployment Architecture](#7-deployment-architecture-standalone)
+8. [Phân Phase Triển Khai](#8-phân-phase-triển-khai)
+9. [Yêu Cầu Phi Chức Năng](#9-yêu-cầu-phi-chức-năng)
 
 ---
 
@@ -212,7 +227,166 @@ Website 360 thế hệ mới không phải là website truyền thống gắn th
 
 ---
 
-## 5. Chiến Lược SEO / AIEO
+## 5. Sequence Diagrams
+
+### 5.1 Visitor Room Page — Full Request Flow
+
+```
+  Visitor            CDN / Cloudflare    Next.js (SSR)      PostgreSQL         Pannellum
+   │                     │                │                  │                  │
+   │  GET /rooms/        │                │                  │                  │
+   │  deluxe-ocean       │                │                  │                  │
+   ├────────────────────►│                │                  │                  │
+   │                     │ cache HIT?     │                  │                  │
+   │                     │ YES → return   │                  │                  │
+   │  ◄─── cached HTML ──┤               │                  │                  │
+   │                     │                │                  │                  │
+   │                     │ cache MISS     │                  │                  │
+   │                     ├───────────────►│                  │                  │
+   │                     │                │ fetch room data  │                  │
+   │                     │                ├─────────────────►│                  │
+   │                     │                │                  │ rooms            │
+   │                     │                │                  │ + amenities      │
+   │                     │                │                  │ + room_scenes    │
+   │                     │                │                  │ + gallery        │
+   │                     │                │  ◄── JSON ───────┤                  │
+   │                     │                │                  │                  │
+   │                     │                │ fetch hotspots   │                  │
+   │                     │                ├─────────────────►│                  │
+   │                     │                │  ◄── hotspots ───┤                  │
+   │                     │                │                  │                  │
+   │                     │                │ SSR render       │                  │
+   │                     │                │ (SEO meta,       │                  │
+   │                     │                │  JSON-LD,        │                  │
+   │                     │                │  HTML + props)   │                  │
+   │                     │  ◄─── HTML ────┤                  │                  │
+   │                     │  set cache     │                  │                  │
+   │  ◄─── HTML ─────────┤               │                  │                  │
+   │                     │                │                  │                  │
+   │  (client hydration) │                │                  │                  │
+   │  React mount        │                │                  │                  │
+   │  dynamic import     │                │                  │                  │
+   │  PanoramaViewer ─────────────────────────────────────────────────────────►│
+   │                     │                │                  │                  │ init viewer
+   │                     │                │                  │                  │ load panorama
+   │                     │  GET pano.jpg  │                  │                  │ from CDN
+   │                     │◄──────────────────────────────────────────────────── │
+   │                     │ serve from     │                  │                  │
+   │                     │ edge cache     │                  │                  │
+   │                     ├──────────────────────────────────────────────────────►
+   │                     │                │                  │                  │ render 360
+   │                     │                │                  │                  │ add hotspots
+   │  ◄──────────────────── page interactive ──────────────────────────────   │
+```
+
+### 5.2 Admin Content Update — Publish Flow
+
+```
+  Admin              Dashboard UI        API Server         Database           Redis/CDN
+   │                     │                │                  │                  │
+   │  login              │                │                  │                  │
+   ├────────────────────►│                │                  │                  │
+   │                     │ POST /auth     │                  │                  │
+   │                     ├───────────────►│                  │                  │
+   │                     │                │ verify creds ────►                  │
+   │                     │                │  ◄── user ────────┤                  │
+   │                     │                │ sign JWT         │                  │
+   │                     │  ◄── token ────┤                  │                  │
+   │  ◄── authenticated ─┤               │                  │                  │
+   │                     │                │                  │                  │
+   │  edit room          │                │                  │                  │
+   │  (name, desc,       │                │                  │                  │
+   │   amenities, price, │                │                  │                  │
+   │   SEO fields)       │                │                  │                  │
+   ├────────────────────►│                │                  │                  │
+   │                     │                │                  │                  │
+   │  upload gallery     │                │                  │                  │
+   ├────────────────────►│                │                  │                  │
+   │                     │ POST /upload   │                  │                  │
+   │                     ├───────────────►│                  │                  │
+   │                     │                │ Sharp resize     │                  │
+   │                     │                │ upload → S3      │                  │
+   │                     │  ◄── image URLs┤                  │                  │
+   │                     │                │                  │                  │
+   │  configure hotspots │                │                  │                  │
+   │  (visual editor)    │                │                  │                  │
+   ├────────────────────►│                │                  │                  │
+   │                     │ drag & drop    │                  │                  │
+   │                     │ on panorama    │                  │                  │
+   │                     │ → pitch/yaw    │                  │                  │
+   │                     │                │                  │                  │
+   │  click "Publish"    │                │                  │                  │
+   ├────────────────────►│                │                  │                  │
+   │                     │ PUT /admin/    │                  │                  │
+   │                     │ rooms/:slug    │                  │                  │
+   │                     ├───────────────►│                  │                  │
+   │                     │                │ validate         │                  │
+   │                     │                │ UPDATE ──────────►                  │
+   │                     │                │                  │ rooms            │
+   │                     │                │                  │ room_amenities   │
+   │                     │                │                  │ room_scenes      │
+   │                     │                │                  │ hotspots         │
+   │                     │                │                  │                  │
+   │                     │                │ invalidate cache────────────────────►
+   │                     │                │                  │                  │ Redis DEL
+   │                     │                │                  │                  │ room:slug
+   │                     │                │                  │                  │
+   │                     │                │                  │                  │ CDN purge
+   │                     │                │                  │                  │ /rooms/slug
+   │                     │                │                  │                  │
+   │                     │  ◄── 200 OK ───┤                  │                  │
+   │  ◄── "Published!" ──┤               │                  │                  │
+   │                     │                │                  │                  │
+   │  click "Preview"    │                │                  │                  │
+   ├────────────────────►│                │                  │                  │
+   │                     │ open new tab   │                  │                  │
+   │                     │ /rooms/slug    │                  │                  │
+   │  ◄──────────────────── live 360 page with new content ────────────────   │
+```
+
+### 5.3 SEO Crawler — Static Generation Path
+
+```
+  Search Crawler     CDN                 Next.js SSG         Database          File Storage
+   │                     │                │                  │                  │
+   │  GET /rooms/        │                │                  │                  │
+   │  deluxe-ocean       │                │                  │                  │
+   ├────────────────────►│                │                  │                  │
+   │                     │ serve static   │                  │                  │
+   │                     │ HTML (ISR)     │                  │                  │
+   │  ◄─── HTML ─────────┤               │                  │                  │
+   │                     │                │                  │                  │
+   │  parse HTML:        │                │                  │                  │
+   │  ├── <title>        │                │                  │                  │
+   │  ├── <meta desc>    │                │                  │                  │
+   │  ├── canonical URL  │                │                  │                  │
+   │  ├── hreflang tags  │                │                  │                  │
+   │  ├── JSON-LD:       │                │                  │                  │
+   │  │   @type:Hotel    │                │                  │                  │
+   │  │   @type:Room     │                │                  │                  │
+   │  ├── OG image       │                │                  │                  │
+   │  └── room content   │                │                  │                  │
+   │     (server-rendered│                │                  │                  │
+   │      text, not JS)  │                │                  │                  │
+   │                     │                │                  │                  │
+   │  GET /sitemap.xml   │                │                  │                  │
+   ├────────────────────►│                │                  │                  │
+   │                     ├───────────────►│                  │                  │
+   │                     │                │ generate sitemap │                  │
+   │                     │                ├─────────────────►│                  │
+   │                     │                │  ◄── all slugs ──┤                  │
+   │                     │                │ build XML        │                  │
+   │  ◄─── sitemap.xml ──┤◄──────────────┤                  │                  │
+   │                     │                │                  │                  │
+   │  crawl all URLs     │                │                  │                  │
+   │  from sitemap       │                │                  │                  │
+   ├────────────────────►│ ──► cached responses ──►          │                  │
+   │  ◄─── indexed ──────┤               │                  │                  │
+```
+
+---
+
+## 6. Chiến Lược SEO / AIEO
 
 ### 5.1 Technical SEO
 
@@ -232,7 +406,7 @@ Website 360 thế hệ mới không phải là website truyền thống gắn th
 
 ---
 
-## 6. Deployment Architecture (Standalone)
+## 7. Deployment Architecture (Standalone)
 
 ```
 ┌─────────────────────────────────────────┐
@@ -268,10 +442,11 @@ Website 360 thế hệ mới không phải là website truyền thống gắn th
 
 ---
 
-## 7. Phân Phase Triển Khai
+## 8. Phân Phase Triển Khai
 
 | Phase | Nội dung | Thời gian ước tính |
 |-------|---------|-------------------|
+| **Phase 0** | ✅ Demo HTML thuần (index.html) — validate UX concept: 360-first layout, mobile bottom sheet drag, Smart UI, mobile menu overlay, loader | Đã hoàn thành |
 | **Phase 1** | CMS Backend + Admin Dashboard + API | 4–6 tuần |
 | **Phase 2** | Frontend: Homepage, Room pages với 360-first layout | 4–6 tuần |
 | **Phase 3** | 360 Interface Layer: Pannellum integration, hotspots, overlays | 3–4 tuần |
@@ -279,16 +454,22 @@ Website 360 thế hệ mới không phải là website truyền thống gắn th
 | **Phase 5** | SEO/AIEO, i18n, performance optimization, testing | 2–3 tuần |
 | **Phase 6** | Deploy, QA, UAT, go-live | 1–2 tuần |
 
-**Tổng ước tính:** 17–25 tuần (4–6 tháng)
+**Phase 0 — Demo HTML (Completed):**
+- File: `index.html` (~700 dòng, inline CSS + JS + data)
+- Dependencies: Pannellum 2.5.6 CDN, Google Fonts (Cormorant Garamond + Outfit)
+- 9 scene 360 demo, 4 panelType, mobile bottom sheet với gesture drag (direction-based snap + auto-snap), mobile menu overlay với stagger animation, Smart UI auto show/hide, loader với progress bar
+- Chi tiết: xem **05-DEMO-HTML-SPEC.md**
+
+**Tổng ước tính (Phase 1–6):** 17–25 tuần (4–6 tháng)
 
 ---
 
-## 8. Yêu Cầu Phi Chức Năng
+## 9. Yêu Cầu Phi Chức Năng
 
 | Tiêu chí | Yêu cầu |
 |----------|---------|
 | Performance | First Contentful Paint < 1.5s, LCP < 2.5s, panorama load < 3s trên 4G |
-| Responsive | Desktop, tablet, mobile (ưu tiên mobile-first) |
+| Responsive | Desktop, tablet, mobile (ưu tiên mobile-first, breakpoint 860px) |
 | Browser | Chrome 90+, Safari 15+, Firefox 90+, Edge 90+ |
 | Accessibility | WCAG 2.1 AA (keyboard nav, alt text, contrast) |
 | Security | HTTPS, CSRF protection, input sanitization, rate limiting |

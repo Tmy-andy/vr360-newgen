@@ -1,9 +1,21 @@
 # 02 — DATABASE & API SPECIFICATION
 ## Website 360 Thế Hệ Mới — Hotel CMS Platform
 
-**Version:** 1.0  
+**Version:** 1.2  
 **Date:** 2026-03-10  
-**Related:** 01-SYSTEM-ARCHITECTURE.md
+**Updated:** Thêm sequence diagrams (API Request Lifecycle, Cache Invalidation), chuẩn hóa bố cục  
+**Related:** 01-SYSTEM-ARCHITECTURE · 03-UI-UX-SPEC · 04-TECHNICAL-IMPLEMENTATION  
+**Note:** Schema này dùng cho production CMS (Phase 1+). Demo HTML (Phase 0) dùng inline SECTIONS array thay vì database — xem 05-DEMO-HTML-SPEC.md
+
+---
+
+## Mục Lục
+
+1. [Database Schema (PostgreSQL)](#1-database-schema-postgresql)
+2. [REST API Specification](#2-rest-api-specification)
+3. [Prisma Schema (Tóm tắt)](#3-prisma-schema-tóm-tắt)
+4. [Caching Strategy](#4-caching-strategy)
+5. [Sequence Diagrams](#5-sequence-diagrams)
 
 ---
 
@@ -910,6 +922,150 @@ model Room {
 - Ảnh panorama: Cache 30 ngày (immutable filename with hash)
 - Gallery images: Cache 7 ngày
 - Static assets (JS/CSS): Cache 1 năm (versioned)
+
+---
+
+## 5. Sequence Diagrams
+
+### 5.1 API Request Lifecycle — Room Detail
+
+```
+  Client (Browser)   CDN Edge Cache      Next.js Server     Redis Cache        PostgreSQL
+   │                     │                │                  │                  │
+   │  GET /api/v1/rooms/ │                │                  │                  │
+   │  deluxe-ocean       │                │                  │                  │
+   ├────────────────────►│                │                  │                  │
+   │                     │                │                  │                  │
+   │                     │ s-maxage=300?  │                  │                  │
+   │                     │ YES (< 5 min)  │                  │                  │
+   │◄──── cached JSON ───┤                │                  │                  │
+   │                     │                │                  │                  │
+   │                     │ MISS or STALE  │                  │                  │
+   │                     ├───────────────►│                  │                  │
+   │                     │                │                  │                  │
+   │                     │                │ check Redis      │                  │
+   │                     │                │ room:deluxe-     │                  │
+   │                     │                │ ocean:en         │                  │
+   │                     │                ├─────────────────►│                  │
+   │                     │                │                  │                  │
+   │                     │                │  ◄── HIT ────────┤ (TTL 15 min)    │
+   │                     │◄──── JSON ─────┤                  │                  │
+   │◄───── JSON ─────────┤                │                  │                  │
+   │                     │                │                  │                  │
+   │                     │                │                  │                  │
+   │                     │  ─── Redis MISS path ───────────────────────────     │
+   │                     │                │                  │                  │
+   │                     │                │◄──── MISS ───────┤                  │
+   │                     │                │                  │                  │
+   │                     │                │ Prisma query     │                  │
+   │                     │                ├────────────────────────────────────►
+   │                     │                │                  │                  │ SELECT rooms
+   │                     │                │                  │                  │ JOIN amenities
+   │                     │                │                  │                  │ JOIN scenes
+   │                     │                │                  │                  │ JOIN gallery
+   │                     │                │◄──── rows ──────────────────────────│
+   │                     │                │                  │                  │
+   │                     │                │ serialize JSON   │                  │
+   │                     │                │ SET Redis ───────►                  │
+   │                     │                │                  │ cache 15 min     │
+   │                     │                │                  │                  │
+   │                     │  ◄── JSON ─────┤                  │                  │
+   │                     │  set s-maxage  │                  │                  │
+   │◄────── JSON ────────┤                │                  │                  │
+```
+
+### 5.2 Cache Invalidation — Admin Publish
+
+```
+  Admin Action       API Server          Redis              CDN                Next.js ISR
+   │                     │                │                  │                  │
+   │  PUT /admin/rooms/  │                │                  │                  │
+   │  deluxe-ocean       │                │                  │                  │
+   ├────────────────────►│                │                  │                  │
+   │                     │ UPDATE DB      │                  │                  │
+   │                     │ (rooms,        │                  │                  │
+   │                     │  amenities,    │                  │                  │
+   │                     │  scenes,       │                  │                  │
+   │                     │  hotspots)     │                  │                  │
+   │                     │                │                  │                  │
+   │                     │ DEL cache keys │                  │                  │
+   │                     ├───────────────►│                  │                  │
+   │                     │                │ DEL room:        │                  │
+   │                     │                │ deluxe-ocean:*   │                  │
+   │                     │                │                  │                  │
+   │                     │                │ DEL rooms:list:  │                  │
+   │                     │                │ {hotel_id}:*     │                  │
+   │                     │                │                  │                  │
+   │                     │                │ DEL hotspots:    │                  │
+   │                     │                │ {scene_ids}      │                  │
+   │                     │                │                  │                  │
+   │                     │ purge CDN      │                  │                  │
+   │                     ├──────────────────────────────────►│                  │
+   │                     │                │                  │ purge            │
+   │                     │                │                  │ /rooms/deluxe-*  │
+   │                     │                │                  │ /api/v1/rooms/*  │
+   │                     │                │                  │                  │
+   │                     │ revalidate ISR │                  │                  │
+   │                     ├─────────────────────────────────────────────────────►│
+   │                     │                │                  │                  │ re-generate
+   │                     │                │                  │                  │ /rooms/
+   │                     │                │                  │                  │ deluxe-ocean
+   │                     │                │                  │                  │ (SSG rebuild)
+   │                     │                │                  │                  │
+   │◄─── 200 Published ──┤                │                  │                  │
+   │                     │                │                  │                  │
+   │  (next visitor)     │                │                  │                  │
+   │  GET /rooms/        │                │                  │                  │
+   │  deluxe-ocean       │                │                  │                  │
+   │  ─────────────────────────────────────────────────────────────────────────►│
+   │  ◄─── fresh HTML ───────────────────────────────────────────────────────── │
+```
+
+### 5.3 Scene Config — Data Join Flow
+
+```
+  API Request        rooms Table         room_scenes         scene_configs      hotspots
+   │                     │                │                  │                  │
+   │  GET room with      │                │                  │                  │
+   │  360 config         │                │                  │                  │
+   ├────────────────────►│                │                  │                  │
+   │                     │ room data      │                  │                  │
+   │                     │ (name, desc,   │                  │                  │
+   │                     │  price, slug)  │                  │                  │
+   │                     │                │                  │                  │
+   │                     │ JOIN ──────────►                  │                  │
+   │                     │                │ room_id →        │                  │
+   │                     │                │ scene_id list    │                  │
+   │                     │                │ (sorted by       │                  │
+   │                     │                │  sort_order)     │                  │
+   │                     │                │                  │                  │
+   │                     │                │ for each scene:  │                  │
+   │                     │                ├─────────────────►│                  │
+   │                     │                │                  │ panorama_url     │
+   │                     │                │                  │ default_yaw      │
+   │                     │                │                  │ default_pitch    │
+   │                     │                │                  │ default_hfov     │
+   │                     │                │                  │ auto_rotate      │
+   │                     │                │                  │                  │
+   │                     │                │ for each scene:  │                  │
+   │                     │                ├─────────────────────────────────────►
+   │                     │                │                  │                  │ scene_id →
+   │                     │                │                  │                  │ hotspot list
+   │                     │                │                  │                  │ (type, pitch,
+   │                     │                │                  │                  │  yaw, label,
+   │                     │                │                  │                  │  target)
+   │                     │                │                  │                  │
+   │  ◄─── combined JSON response ───────────────────────────────────────────   │
+   │  {                  │                │                  │                  │
+   │    room: {...},     │                │                  │                  │
+   │    scenes: [        │                │                  │                  │
+   │      {scene_id,     │                │                  │                  │
+   │       panorama_url, │                │                  │                  │
+   │       config: {...},│                │                  │                  │
+   │       hotspots:[...]}                │                  │                  │
+   │    ]                │                │                  │                  │
+   │  }                  │                │                  │                  │
+```
 
 ---
 

@@ -1,9 +1,25 @@
 # 04 — TECHNICAL IMPLEMENTATION SPECIFICATION
 ## Website 360 Thế Hệ Mới — React / Next.js
 
-**Version:** 1.0  
+**Version:** 1.2  
 **Date:** 2026-03-10  
-**Related:** 01, 02, 03
+**Updated:** Thêm sequence diagrams (Client Hydration, Scene Change Runtime, Analytics, Hotspot Editor)  
+**Related:** 01-SYSTEM-ARCHITECTURE · 02-DATABASE-API-SPEC · 03-UI-UX-SPEC · 05-DEMO-HTML-SPEC
+
+---
+
+## Mục Lục
+
+1. [Project Structure](#1-project-structure-nextjs-app-router)
+2. [Core Component Specifications](#2-core-component-specifications)
+3. [Data Flow: Room 360 Page](#3-data-flow-room-360-page-chi-tiết)
+4. [API Client & Data Fetching](#4-api-client--data-fetching)
+5. [Scene Mapping Strategy](#5-scene-mapping-strategy)
+6. [Performance Optimization](#6-performance-optimization)
+7. [Analytics Integration](#7-analytics-integration)
+8. [Admin Dashboard — Hotspot Visual Editor](#8-admin-dashboard--hotspot-visual-editor)
+9. [Demo HTML Implementation (Phase 0)](#9-demo-html-implementation-phase-0)
+10. [Sequence Diagrams](#10-sequence-diagrams)
 
 ---
 
@@ -923,4 +939,382 @@ IMPLEMENTATION:
 
 ---
 
-*Tài liệu tiếp theo: **05-DEMO-HTML-SPEC.md** — Spec cho trang demo HTML thuần + JSON data*
+## 9. Demo HTML Implementation (Phase 0)
+
+> Trang demo `index.html` là proof-of-concept thuần HTML/CSS/JS, không dùng framework.
+> Mục tiêu: validate toàn bộ UX concept trước khi triển khai React/Next.js.
+
+### 9.1 Architecture Overview
+
+```
+index.html (single file, ~700 lines)
+├── Inline CSS (~200 lines)
+│   ├── CSS Variables (design tokens)
+│   ├── Component styles
+│   ├── Responsive breakpoints (@media 1100px, 860px)
+│   └── Mobile bottom sheet states
+├── Inline HTML (~100 lines)
+│   ├── Loader screen
+│   ├── Panorama container
+│   ├── UI Layer (topbar, panel, scene-nav, location-pill, restore btn)
+│   └── Mobile overlay menu
+├── Inline JS (~400 lines)
+│   ├── SECTIONS data array (9 scenes)
+│   ├── Navigation & scene management
+│   ├── Panel content rendering (4 panelTypes)
+│   ├── Smart UI (interaction/idle detection)
+│   ├── Mobile panel drag IIFE
+│   └── Loader progress simulation
+└── CDN Dependencies
+    ├── Pannellum 2.5.6 (CSS + JS)
+    └── Google Fonts (Cormorant Garamond + Outfit)
+```
+
+### 9.2 Mobile Panel Drag System
+
+```javascript
+// IIFE pattern — self-contained module
+(function(){
+  // State
+  let startY, startTranslate, currentY, isDragging, dragSource;
+  
+  // Key functions:
+  // getCurrentTranslateY(el) — parse computed transform matrix
+  // onDragStart(e) — detect source (bar vs panel), read position
+  // onDragMove(e) — free drag (bar) or auto-snap (panel body)
+  // onDragEnd() — direction-based snap with rAF
+  // cancelDrag() — restore state when scroll should take over
+  
+  // Event binding via MutationObserver
+  // → auto-bind when contentPanel appears in DOM
+})();
+```
+
+**Direction-based snap (drag-bar):**
+```
+dragDelta = currentY - startTranslate
+if (dragDelta < -20) → expand    // kéo lên
+if (dragDelta > 20)  → collapse  // kéo xuống  
+else                 → restore previous state
+```
+
+**Auto-snap (panel body):**
+```
+delta = clientY - startY
+if (|delta| < 15) return;        // chưa đủ gesture
+if (delta < 0 && already expanded) → cancelDrag, allow scroll
+if (delta < 0) → expand
+if (delta > 0) → collapse
+```
+
+**requestAnimationFrame pattern:**
+```
+panel.classList.remove("dragging");  // has transition:none!important
+requestAnimationFrame(() => {
+  panel.style.transition = "transform .35s cubic-bezier(.16,1,.3,1)";
+  panel.style.transform = "translateY(" + targetY + "px)";
+  let settled = false;
+  const onDone = () => {
+    if (settled) return; settled = true;
+    panel.style.transition = ""; panel.style.transform = "";
+    panel.classList.toggle("expanded", shouldExpand);
+  };
+  panel.addEventListener("transitionend", onDone);
+  setTimeout(onDone, 400);  // fallback
+});
+```
+
+### 9.3 Smart UI Implementation
+
+```javascript
+// Panorama event listeners
+el.addEventListener("mousedown", onS);   // → fadeOut (hide UI)
+el.addEventListener("touchstart", onS);
+el.addEventListener("mouseup", onE);     // → resetIdle (5s timer)
+el.addEventListener("touchend", onE);
+
+// State: uiHidden (boolean), idleTimer, isInteracting
+// fadeOut(): add .hidden to .ui-layer
+// fadeIn(): remove .hidden from .ui-layer
+// resetIdle(): clearTimeout + setTimeout(5000ms)
+// toggleUI(): manual toggle (btn-icon click)
+// showAllUI(): force show + reset idle timer
+```
+
+### 9.4 Scene Navigation
+
+```javascript
+// navigateTo(id, anim=true)
+// 1. Find section in SECTIONS array
+// 2. Close any open info card
+// 3. If first load: initViewer(sec) — create Pannellum instance
+// 4. If animated: slide-out panel → destroy viewer → initViewer → slide-in
+// 5. renderPanel(sec) — rebuild panel HTML based on panelType
+// 6. renderSceneNav(sec) — show sub-scene tabs if subScenes.length >= 2
+// 7. updateNav(id) — highlight active nav link (map sub-scenes to parent)
+```
+
+### 9.5 Custom Hotspot Rendering
+
+```javascript
+// Pannellum custom hotspot renderer
+createTooltipFunc: (el, args) => {
+  el.classList.add("hs", type === "nav" ? "hs-nav" : "hs-info");
+  el.innerHTML = icon_svg + '<span>' + args.label + '</span>';
+  el.onclick = () => {
+    if (args.type === "nav") navigateTo(args.target);
+    else showCard(args, event);  // floating info card
+  };
+}
+// Hotspot styles: pill shape, backdrop-filter blur, pulse animation
+```
+
+### 9.6 Mapping to Future React Components
+
+| Demo JS Function | Future React Component |
+|------------------|----------------------|
+| `navigateTo()` | `usePanorama` hook + `PanoramaViewer` |
+| `renderPanel()` | `InfoPanel` / `InfoPanelMobile` |
+| `renderSceneNav()` | `SceneNavigator` |
+| `onS/onE/fadeOut/fadeIn` | `useSmartUI` hook |
+| Mobile drag IIFE | `useBottomSheet` hook |
+| `renderNav()` | `Navbar` + `MobileMenu` |
+| `showCard/closeCard` | `HotspotInfoCard` |
+| SECTIONS array | API response from `getRoomWithRelations()` |
+| Loader IIFE | `PanoramaLoader` component |
+
+---
+
+## 10. Sequence Diagrams
+
+### 10.1 Client Hydration — Full Init Flow
+
+```
+  Next.js SSR       React Hydration     PanoramaViewer     SmartUI Hook       Zustand Stores
+   │                     │                │                  │                  │
+   │  HTML + JSON props  │                │                  │                  │
+   │  (room, scenes,     │                │                  │                  │
+   │   hotspots, gallery)│                │                  │                  │
+   ├────────────────────►│                │                  │                  │
+   │                     │ hydrate        │                  │                  │
+   │                     │ RoomImmersive  │                  │                  │
+   │                     │ Page           │                  │                  │
+   │                     │                │                  │                  │
+   │                     │ initScenes() ───────────────────────────────────────►│
+   │                     │                │                  │                  │ sceneStore
+   │                     │                │                  │                  │ set scenes[]
+   │                     │                │                  │                  │ set hotspots{}
+   │                     │                │                  │                  │
+   │                     │ dynamic import │                  │                  │
+   │                     │ (ssr: false)   │                  │                  │
+   │                     ├───────────────►│                  │                  │
+   │                     │                │ Pannellum CDN    │                  │
+   │                     │                │ loaded           │                  │
+   │                     │                │                  │                  │
+   │                     │                │ init viewer()    │                  │
+   │                     │                │ config:          │                  │
+   │                     │                │  autoLoad: true  │                  │
+   │                     │                │  showControls:   │                  │
+   │                     │                │  false           │                  │
+   │                     │                │  friction: 0.15  │                  │
+   │                     │                │  sceneFadeDur:   │                  │
+   │                     │                │  500ms           │                  │
+   │                     │                │                  │                  │
+   │                     │                │ load panorama    │                  │
+   │                     │                │ add hotSpots     │                  │
+   │                     │                │                  │                  │
+   │                     │                │ attach events ──►│                  │
+   │                     │                │ (mousedown,      │ bind interaction │
+   │                     │                │  touchstart,     │ listeners        │
+   │                     │                │  mouseup,        │ init idle timer  │
+   │                     │                │  touchend)       │ (4s timeout)     │
+   │                     │                │                  │                  │
+   │                     │                │ setLoading(false)────────────────────►
+   │                     │                │                  │                  │ sceneStore
+   │                     │                │                  │                  │ isLoading=false
+   │                     │                │                  │                  │
+   │                     │ mount UI ──────────────────────────────────────────►│
+   │                     │ components     │                  │                  │ uiStore
+   │                     │                │                  │                  │ visibility=
+   │                     │                │                  │                  │ 'visible'
+   │  ◄─────────────────── page interactive ───────────────────────────────   │
+```
+
+### 10.2 Scene Change — Runtime Flow
+
+```
+  User               HotspotMarker       PanoramaViewer     sceneStore         InfoPanel
+   │                     │                │                  │                  │
+   │  click navigate     │                │                  │                  │
+   │  hotspot            │                │                  │                  │
+   ├────────────────────►│                │                  │                  │
+   │                     │ clickHandler   │                  │                  │
+   │                     │ (sceneId)      │                  │                  │
+   │                     ├───────────────►│                  │                  │
+   │                     │                │ setTransitioning ────────────────────►
+   │                     │                │ (true)           │                  │ transitioning
+   │                     │                │                  │                  │
+   │                     │                │ Pannellum:       │                  │
+   │                     │                │ fade out current │                  │
+   │                     │                │ (sceneFadeDur    │                  │
+   │                     │                │  500ms)          │                  │
+   │                     │                │                  │                  │
+   │                     │                │ load new         │                  │
+   │                     │                │ panorama_url     │                  │
+   │                     │                │                  │                  │
+   │                     │                │ render new       │                  │
+   │                     │                │ hotSpots         │                  │
+   │                     │                │                  │                  │
+   │                     │                │ fade in new      │                  │
+   │                     │                │ scene (500ms)    │                  │
+   │                     │                │                  │                  │
+   │                     │                │ setCurrentScene ─────────────────────►
+   │                     │                │ (newSceneId)     │                  │ update
+   │                     │                │                  │                  │ currentSceneId
+   │                     │                │                  │                  │
+   │                     │                │ setTransitioning ────────────────────►
+   │                     │                │ (false)          │                  │ transitioning
+   │                     │                │                  │                  │ = false
+   │                     │                │                  │                  │
+   │                     │                │                  │                  ├── react to
+   │                     │                │                  │                  │   store change
+   │                     │                │                  │                  │   update panel
+   │                     │                │                  │                  │   content
+   │                     │                │                  │                  │
+   │                     │                │ analytics.track ─────────────────   │
+   │                     │                │ ('scene_view',   │ → API POST      │
+   │                     │                │  {scene_id,      │                  │
+   │                     │                │   room_slug})    │                  │
+   │  ◄──────────────────── new scene visible ─────────────────────────────   │
+```
+
+### 10.3 Analytics Event Pipeline
+
+```
+  User Action        useAnalytics()      API Client          Server API        Database
+   │                     │                │                  │                  │
+   │  scene_view         │                │                  │                  │
+   │  (auto on scene     │                │                  │                  │
+   │   change)           │                │                  │                  │
+   ├────────────────────►│                │                  │                  │
+   │                     │ track(         │                  │                  │
+   │                     │  'scene_view', │                  │                  │
+   │                     │  {scene_id,    │                  │                  │
+   │                     │   room_slug})  │                  │                  │
+   │                     ├───────────────►│                  │                  │
+   │                     │                │ POST /api/v1/    │                  │
+   │                     │                │ analytics/event  │                  │
+   │                     │                │ {event_type,     │                  │
+   │                     │                │  session_id,     │                  │
+   │                     │                │  page_path,      │                  │
+   │                     │                │  ...data}        │                  │
+   │                     │                ├─────────────────►│                  │
+   │                     │                │                  │ validate         │
+   │                     │                │                  │ enrich (IP,      │
+   │                     │                │                  │  user-agent,     │
+   │                     │                │                  │  geo)            │
+   │                     │                │                  │ INSERT ──────────►
+   │                     │                │                  │                  │ analytics_
+   │                     │                │                  │                  │ events table
+   │                     │                │  ◄── 200 OK ─────┤                  │
+   │                     │  ◄── resolved ─┤                  │                  │
+   │                     │                │                  │                  │
+   │  hotspot_click      │                │                  │                  │
+   ├────────────────────►│                │                  │                  │
+   │                     │ track(         │                  │                  │
+   │                     │  'hotspot_     │                  │                  │
+   │                     │   click',      │                  │                  │
+   │                     │  {hotspot_id,  │                  │                  │
+   │                     │   type})       │                  │                  │
+   │                     ├───────────────►│ POST ───────────►│ INSERT ──────────►
+   │                     │                │                  │                  │
+   │  booking_click      │                │                  │                  │
+   ├────────────────────►│                │                  │                  │
+   │                     │ track(         │                  │                  │
+   │                     │  'booking_     │                  │                  │
+   │                     │   click',      │                  │                  │
+   │                     │  {room_slug,   │                  │                  │
+   │                     │   source})     │                  │                  │
+   │                     ├───────────────►│ POST ───────────►│ INSERT ──────────►
+   │                     │                │                  │                  │
+   │  gallery_open       │                │                  │                  │
+   ├────────────────────►│                │                  │                  │
+   │                     │ track(         │                  │                  │
+   │                     │  'gallery_     │                  │                  │
+   │                     │   open',       │                  │                  │
+   │                     │  {room_slug})  │                  │                  │
+   │                     ├───────────────►│ POST ───────────►│ INSERT ──────────►
+   │                     │                │                  │                  │
+   │                     │ NOTE: all      │                  │                  │
+   │                     │ track() calls  │                  │                  │
+   │                     │ try/catch      │                  │                  │
+   │                     │ → silent fail  │                  │                  │
+   │                     │ (never break   │                  │                  │
+   │                     │  UX)           │                  │                  │
+```
+
+### 10.4 Admin Hotspot Visual Editor Flow
+
+```
+  Admin              SceneSelector       PanoramaEditor     HotspotForm        Server API
+   │                     │                │                  │                  │
+   │  select scene       │                │                  │                  │
+   │  from list          │                │                  │                  │
+   ├────────────────────►│                │                  │                  │
+   │                     │ load scene     │                  │                  │
+   │                     │ config         │                  │                  │
+   │                     ├───────────────►│                  │                  │
+   │                     │                │ init Pannellum   │                  │
+   │                     │                │ load panorama    │                  │
+   │                     │                │ render existing  │                  │
+   │                     │                │ hotspots as      │                  │
+   │                     │                │ draggable markers│                  │
+   │  ◄──────────────────── editor ready ─┤                  │                  │
+   │                     │                │                  │                  │
+   │  click on panorama  │                │                  │                  │
+   │  (place hotspot)    │                │                  │                  │
+   ├──────────────────────────────────────►                  │                  │
+   │                     │                │ mouseEventTo     │                  │
+   │                     │                │ Coords(event)    │                  │
+   │                     │                │ → {pitch, yaw}   │                  │
+   │                     │                │                  │                  │
+   │                     │                │ show form ──────►│                  │
+   │                     │                │                  │ type: dropdown   │
+   │                     │                │                  │ (info/navigate/  │
+   │                     │                │                  │  cta/gallery)    │
+   │                     │                │                  │ label: text      │
+   │                     │                │                  │ description:     │
+   │                     │                │                  │ textarea         │
+   │                     │                │                  │ target: select   │
+   │                     │                │                  │                  │
+   │  fill form & save   │                │                  │                  │
+   ├──────────────────────────────────────────────────────►│                  │
+   │                     │                │                  │ validate         │
+   │                     │                │                  │ POST /admin/     │
+   │                     │                │                  │ hotspots ────────►
+   │                     │                │                  │                  │ INSERT
+   │                     │                │                  │                  │ hotspots
+   │                     │                │                  │  ◄── 201 ────────┤
+   │                     │                │  ◄── add marker ─┤                  │
+   │                     │                │  render new      │                  │
+   │                     │                │  hotspot on pano │                  │
+   │  ◄──────────────────── hotspot placed ────────────────────────────────   │
+   │                     │                │                  │                  │
+   │  drag existing      │                │                  │                  │
+   │  hotspot            │                │                  │                  │
+   ├──────────────────────────────────────►                  │                  │
+   │                     │                │ update pitch/yaw │                  │
+   │                     │                │ on drag          │                  │
+   │                     │                │                  │                  │
+   │  release            │                │                  │                  │
+   ├──────────────────────────────────────►                  │                  │
+   │                     │                │ PATCH /admin/    │                  │
+   │                     │                │ hotspots/:id ────────────────────────►
+   │                     │                │ {pitch, yaw}     │                  │ UPDATE
+   │                     │                │  ◄── 200 ────────────────────────────┤
+   │  ◄──────────────────── position saved ────────────────────────────────   │
+```
+
+---
+
+*Tài liệu tiếp theo: **05-DEMO-HTML-SPEC.md** — Spec chi tiết cho trang demo HTML thuần*

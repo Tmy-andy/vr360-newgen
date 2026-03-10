@@ -574,9 +574,13 @@ function toggleMobilePanel(){panelExp=!panelExp;document.getElementById("content
     const panel=getPanel();if(!panel||window.innerWidth>860)return;
     isDragging=true;
     startY=e.type.startsWith("touch")?e.touches[0].clientY:e.clientY;
+    // Read current visual position BEFORE changing classes
     startTranslate=getCurrentTranslateY(panel);
-    panel.classList.add("dragging");
+    currentY=startTranslate;
+    // Lock position with inline style, then remove class — no visual jump
+    panel.style.transform="translateY("+startTranslate+"px)";
     panel.classList.remove("expanded");
+    panel.classList.add("dragging");
     document.addEventListener("mousemove",onDragMove,{passive:false});
     document.addEventListener("mouseup",onDragEnd);
     document.addEventListener("touchmove",onDragMove,{passive:false});
@@ -605,9 +609,24 @@ function toggleMobilePanel(){panelExp=!panelExp;document.getElementById("content
     document.removeEventListener("touchend",onDragEnd);
     const maxT=getCollapsedTranslate();
     const threshold=maxT*0.4;
-    panel.style.transform="";
-    if(currentY<threshold){panelExp=true;panel.classList.add("expanded")}
-    else{panelExp=false;panel.classList.remove("expanded")}
+    const shouldExpand=currentY<threshold;
+    const targetY=shouldExpand?0:maxT;
+    // Animate from current position to target using transition
+    panel.style.transition="transform .35s cubic-bezier(.16,1,.3,1)";
+    panel.style.transform="translateY("+targetY+"px)";
+    // After transition, clean up inline styles and apply class state
+    let settled=false;
+    const onDone=()=>{
+      if(settled)return;settled=true;
+      panel.removeEventListener("transitionend",onDone);
+      panel.style.transition="";
+      panel.style.transform="";
+      if(shouldExpand){panelExp=true;panel.classList.add("expanded")}
+      else{panelExp=false;panel.classList.remove("expanded")}
+    };
+    panel.addEventListener("transitionend",onDone);
+    // Fallback if transitionend doesn't fire
+    setTimeout(onDone,400);
   }
 
   document.addEventListener("DOMContentLoaded",function(){

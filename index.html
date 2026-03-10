@@ -553,9 +553,9 @@ function toggleMobilePanel(){panelExp=!panelExp;document.getElementById("content
 
 // ══════════ MOBILE PANEL DRAG ══════════
 (function(){
-  let startY=0,startTranslate=0,currentY=0,isDragging=false;
+  let startY=0,startTranslate=0,currentY=0,isDragging=false,dragSource="";
   const getPanel=()=>document.getElementById("contentPanel");
-  const dragEl=()=>{const p=getPanel();return p?p.querySelector(".panel-drag"):null};
+  const getScroll=()=>{const p=getPanel();return p?p.querySelector(".panel-scroll"):null};
 
   function getPanelHeight(){const p=getPanel();return p?p.offsetHeight:400}
   function getCollapsedTranslate(){return getPanelHeight()-160}
@@ -572,12 +572,17 @@ function toggleMobilePanel(){panelExp=!panelExp;document.getElementById("content
 
   function onDragStart(e){
     const panel=getPanel();if(!panel||window.innerWidth>860)return;
+    const clientY=e.type.startsWith("touch")?e.touches[0].clientY:e.clientY;
+    const fromDragBar=!!e.target.closest(".panel-drag");
+    const scroll=getScroll();
+    const scrollAtTop=!scroll||scroll.scrollTop<=0;
+    // Allow drag from drag-bar always, or from panel body only if scroll is at top
+    if(!fromDragBar&&!scrollAtTop)return;
+    dragSource=fromDragBar?"bar":"panel";
     isDragging=true;
-    startY=e.type.startsWith("touch")?e.touches[0].clientY:e.clientY;
-    // Read current visual position BEFORE changing classes
+    startY=clientY;
     startTranslate=getCurrentTranslateY(panel);
     currentY=startTranslate;
-    // Lock position with inline style, then remove class — no visual jump
     panel.style.transform="translateY("+startTranslate+"px)";
     panel.classList.remove("expanded");
     panel.classList.add("dragging");
@@ -589,13 +594,29 @@ function toggleMobilePanel(){panelExp=!panelExp;document.getElementById("content
 
   function onDragMove(e){
     if(!isDragging)return;
-    e.preventDefault();
     const panel=getPanel();if(!panel)return;
     const clientY=e.type.startsWith("touch")?e.touches[0].clientY:e.clientY;
     const delta=clientY-startY;
+    // If drag started from panel (not drag-bar) and user is swiping up while collapsed, cancel drag to allow scroll
+    if(dragSource==="panel"&&delta<-5&&startTranslate<=0){
+      cancelDrag();return;
+    }
+    e.preventDefault();
     const maxT=getCollapsedTranslate();
     currentY=clamp(startTranslate+delta,0,maxT);
     panel.style.transform="translateY("+currentY+"px)";
+  }
+
+  function cancelDrag(){
+    isDragging=false;
+    const panel=getPanel();if(!panel)return;
+    panel.classList.remove("dragging");
+    panel.style.transform="";
+    if(startTranslate<=0){panelExp=true;panel.classList.add("expanded")}
+    document.removeEventListener("mousemove",onDragMove);
+    document.removeEventListener("mouseup",onDragEnd);
+    document.removeEventListener("touchmove",onDragMove);
+    document.removeEventListener("touchend",onDragEnd);
   }
 
   function onDragEnd(){
@@ -630,17 +651,15 @@ function toggleMobilePanel(){panelExp=!panelExp;document.getElementById("content
   }
 
   document.addEventListener("DOMContentLoaded",function(){
-    const observe=new MutationObserver(()=>{
-      const d=dragEl();
-      if(d&&!d._dragBound){
-        d._dragBound=true;
-        d.addEventListener("mousedown",onDragStart);
-        d.addEventListener("touchstart",onDragStart,{passive:true});
-      }
-    });
+    const bindPanel=(p)=>{
+      if(!p||p._dragBound)return;
+      p._dragBound=true;
+      p.addEventListener("mousedown",onDragStart);
+      p.addEventListener("touchstart",onDragStart,{passive:true});
+    };
+    const observe=new MutationObserver(()=>bindPanel(getPanel()));
     observe.observe(document.body,{childList:true,subtree:true});
-    const d=dragEl();
-    if(d){d._dragBound=true;d.addEventListener("mousedown",onDragStart);d.addEventListener("touchstart",onDragStart,{passive:true})}
+    bindPanel(getPanel());
   });
 })();
 function openBooking(){window.open(BOOKING_URL,"_blank")}
